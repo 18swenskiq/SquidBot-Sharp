@@ -19,36 +19,6 @@ namespace SquidBot_Sharp.Commands
         [Command("times"), Description("Get current times across the world")]
         public async Task Times(CommandContext ctx)
         {
-            var aest = TimeZoneInfo.FindSystemTimeZoneById("AUS Eastern Standard Time");
-            var east = TimeZoneInfo.FindSystemTimeZoneById("E. Australia Standard Time");
-            var mosst = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
-            var eest = TimeZoneInfo.FindSystemTimeZoneById("E. Europe Standard Time");
-            var sast = TimeZoneInfo.FindSystemTimeZoneById("South Africa Standard Time");
-            var cest = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-            var gst = TimeZoneInfo.FindSystemTimeZoneById("Greenwich Standard Time");
-            var esast = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
-            var est = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-            var cst = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
-            var pst = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
-            var hst = TimeZoneInfo.FindSystemTimeZoneById("Hawaiian Standard Time");
-            var now = DateTime.Now;
-
-
-            var strbuilder = new StringBuilder();
-            strbuilder.Append("```py\n");
-            strbuilder.Append($"{"Sydney:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, aest)}\n");
-            strbuilder.Append($"{"Brisbane:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, east)}\n");
-            strbuilder.Append($"{"Moscow:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, mosst)}\n");
-            strbuilder.Append($"{"Sofia:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, eest)}\n");
-            strbuilder.Append($"{"Johannesburg:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, sast)}\n");
-            strbuilder.Append($"{"Berlin:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, cest)}\n");
-            strbuilder.Append($"{"London:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, gst)}\n");
-            strbuilder.Append($"{"Brasilia:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, esast)}\n");
-            strbuilder.Append($"{"Indianapolis:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, est)}\n");
-            strbuilder.Append($"{"Chicago:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, cst)}\n");
-            strbuilder.Append($"{"Los Angeles:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, pst)}\n");
-            strbuilder.Append($"{"Honolulu:".PadRight(13)} {TimeZoneInfo.ConvertTime(now, hst)}\n");
-            strbuilder.Append("```");
 
             // Check which user profiles we have in the current server
             var upm = new UserProfileModule();
