@@ -11,19 +11,19 @@ namespace SquidBot_Sharp.Commands
     public class ConvertCMD
     {
         [Command("convert"), Description("Convert a measurement unit to its corresponding metric or imperial unit")]
-        public async Task ConvertUnits(CommandContext ctx, string argument1, string argument2 = null)
+        public async Task ConvertUnits(CommandContext ctx, [Description("Total conversion payload, or only the number amount")] string ConversionAmountAndOrUnits, [Description("Conversion units if there was a space")]string ConversionUnits = null)
         {
             double convertAmount = 0;
             string convertFrom = null;
             string convertResults = null;
             string convertTo = null;
 
-            if (argument2 != null)
+            if (ConversionUnits != null)
             {
-                convertFrom = argument2;
+                convertFrom = ConversionUnits;
                 try
                 {
-                    convertAmount = Convert.ToDouble(argument1);
+                    convertAmount = Convert.ToDouble(ConversionAmountAndOrUnits);
                 }
                 catch
                 {
@@ -33,10 +33,10 @@ namespace SquidBot_Sharp.Commands
             }
             else
             {
-                if(argument1.Any(char.IsLetter))
+                if(ConversionAmountAndOrUnits.Any(char.IsLetter))
                 {
                     string tempstringfornumber = "";
-                    foreach (var character in argument1)
+                    foreach (var character in ConversionAmountAndOrUnits)
                     {
                         if (Char.IsDigit(character) || character == '-' || character == '.')
                         {

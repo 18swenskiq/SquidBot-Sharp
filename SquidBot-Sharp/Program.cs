@@ -68,6 +68,7 @@ namespace SquidBot_Sharp
             var commandconfig = new CommandsNextConfiguration
             {
                 StringPrefix = ">",
+
                 CaseSensitive = false,          
 
                 EnableDms = true,
@@ -82,6 +83,7 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands<ConvertCMD>();
             _commands.RegisterCommands<TimesCMD>();
             _commands.RegisterCommands<FaceitCMD>();
+            _commands.RegisterCommands<InviteCMD>();
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations

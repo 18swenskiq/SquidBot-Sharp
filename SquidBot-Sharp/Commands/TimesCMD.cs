@@ -205,7 +205,7 @@ namespace SquidBot_Sharp.Commands
         }
 
 
-        [Command("settimezone"), Description("Set your time zone through timezone name, UTC code, or city name")]
+        [Command("settimezone"), Description("Set your time zone through a local city name")]
         [Aliases("addtimezone")]
         public async Task SetTimeZone(CommandContext ctx)
         {

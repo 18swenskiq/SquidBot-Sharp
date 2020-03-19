@@ -18,7 +18,7 @@ namespace SquidBot_Sharp.Commands
 
         [Command("faceitplayerdetails")]
         [Aliases("faceitpd")]
-        public async Task FaceitDetails(CommandContext ctx, [RemainingText] string username)
+        public async Task FaceitDetails(CommandContext ctx, [RemainingText, Description("The username of the Faceit account to get details for")] string username)
         {
 
             faceitClient = new FaceitClient(SettingsFile.faceitapikey);
