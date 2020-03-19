@@ -167,6 +167,8 @@ namespace SquidBot_Sharp.Commands
                         if(child2.Name == "0")
                         {
                             var thisreturninfo = new WorkshopReturnInformation();
+                            // TODO: If we get duplicate resutls from the API, call the API again for more results
+
                             foreach(var child3 in child2.Children)
                             {
                                 switch(child3.Name)
