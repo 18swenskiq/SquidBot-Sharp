@@ -11,6 +11,7 @@ namespace SquidBot_Sharp.Models
         public static string databaseusername { get; set; }
         public static string databasepassword { get; set; }
         public static string faceitapikey { get; set; }
+        public static string steamwebapikey { get; set; }
     }
 
     public class SettingsFileDeserialize
@@ -20,5 +21,6 @@ namespace SquidBot_Sharp.Models
         public string databaseusername { get; set; }
         public string databasepassword { get; set; }
         public string faceitapikey { get; set; }
+        public string steamwebapikey { get; set; }
     }
 }

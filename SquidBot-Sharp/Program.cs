@@ -40,6 +40,7 @@ namespace SquidBot_Sharp
                 SettingsFile.databaseurl = sfd.databaseurl;
                 SettingsFile.databaseusername = sfd.databaseusername;
                 SettingsFile.faceitapikey = sfd.faceitapikey;
+                SettingsFile.steamwebapikey = sfd.steamwebapikey;
             }
             var cfg = new DiscordConfiguration
             {
@@ -84,6 +85,7 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands<TimesCMD>();
             _commands.RegisterCommands<FaceitCMD>();
             _commands.RegisterCommands<InviteCMD>();
+            _commands.RegisterCommands<SteamWorkshopCMD>();
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
