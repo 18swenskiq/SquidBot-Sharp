@@ -61,69 +61,73 @@ namespace SquidBot_Sharp.Commands
                 int totalSearchResults = 0;
                 string next_cursor = "";
 
-                    KeyValue kvResults = await SteamWorkshopQuery.QueryFiles(
-                        query_type: 0,
-                        cursor: "*",
-                        appid: gameid,
-                        search_text: SearchQuery,
-                        method: HttpMethod.Get
-                    );
+                KeyValue kvResults = await SteamWorkshopQuery.QueryFiles(
+                    query_type: 0,
+                    cursor: "*",
+                    appid: gameid,
+                    search_text: SearchQuery,
+                    method: HttpMethod.Get
+                 );
 
                     // Get the total search results
-                    foreach(var child in kvResults.Children)
+                foreach(var child in kvResults.Children)
+                {
+                    if (child.Name == "total")
                     {
-                        if (child.Name == "total")
-                        {
-                            totalSearchResults = Int32.Parse(child.Value);
-                            break;
-                        }
+                        totalSearchResults = Int32.Parse(child.Value);
+                        break;
                     }
+                }
 
-                    // Clamp results
-                    if (totalSearchResults > 5) totalSearchResults = 5;
+                // Clamp results
+                if (totalSearchResults > 5) totalSearchResults = 5;
 
-                    for(int i = 0; i < totalSearchResults; i++)
+                while(searchResultIDList.Count < totalSearchResults)
+                {
+                    foreach (var child in kvResults.Children)
                     {
-                        foreach (var child in kvResults.Children)
+                        if (child.Name == "publishedfiledetails")
                         {
-                            if (child.Name == "publishedfiledetails")
+                            foreach (var child2 in child.Children)
                             {
-                                foreach (var child2 in child.Children)
+                                foreach (var child3 in child2.Children)
                                 {
-                                    foreach (var child3 in child2.Children)
+                                    if (child3.Name == "publishedfileid")
                                     {
-                                        if (child3.Name == "publishedfileid") searchResultIDList.Add(child3.Value);
+                                        if (!searchResultIDList.Contains(child3.Value))
+                                        {
+                                            searchResultIDList.Add(child3.Value);
+                                        }
                                     }
                                 }
                             }
-                            if (child.Name == "next_cursor") next_cursor = child.Value;
                         }
-                        if(i + 1 < totalSearchResults)
-                        {
-                            kvResults = await SteamWorkshopQuery.QueryFiles(
-                                query_type: 0,
-                                appid: gameid,
-                                cursor: next_cursor,
-                                search_text: SearchQuery,
-                                method: HttpMethod.Get
-                            );
-                        }
+                        if (child.Name == "next_cursor") next_cursor = child.Value;
                     }
+                    kvResults = await SteamWorkshopQuery.QueryFiles(
+                        query_type: 0,
+                        appid: gameid,
+                        cursor: next_cursor,
+                        search_text: SearchQuery,
+                        method: HttpMethod.Get
+                    );
+                }
 
-                    //Console.WriteLine(searchResultIDList);
-                    var listresults = await GetPublishedFileDetails(ctx, searchResultIDList);
 
-                    var embed = new DiscordEmbedBuilder
-                    {
-                        Title = $"`{SearchQuery}` search results",
-                        Color = new DiscordColor(0x171A21)
-                    };
+                //Console.WriteLine(searchResultIDList);
+                var listresults = await GetPublishedFileDetails(ctx, searchResultIDList);
 
-                    foreach(var workshopitem in listresults)
-                    {
-                        if (gameid == 730 && workshopitem.FileURL == null) continue;
-                        embed.AddField($"{workshopitem.Title}", $"https://steamcommunity.com/sharedfiles/filedetails/?id={workshopitem.PublishedFileID}");
-                    }
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = $"`{SearchQuery}` search results",
+                    Color = new DiscordColor(0x171A21)
+                };
+
+                foreach(var workshopitem in listresults)
+                {
+                    if (gameid == 730 && workshopitem.FileURL == null) continue;
+                    embed.AddField($"{workshopitem.Title}", $"https://steamcommunity.com/sharedfiles/filedetails/?id={workshopitem.PublishedFileID}");
+                }
 
                 await ctx.RespondAsync(embed: embed);
             }
@@ -167,7 +171,6 @@ namespace SquidBot_Sharp.Commands
                         if(child2.Name == "0")
                         {
                             var thisreturninfo = new WorkshopReturnInformation();
-                            // TODO: If we get duplicate resutls from the API, call the API again for more results
 
                             foreach(var child3 in child2.Children)
                             {
@@ -206,20 +209,6 @@ namespace SquidBot_Sharp.Commands
                     }
                 }
             }
-
-            // Remove duplicate entries
-            var tempreturninfo = new List<WorkshopReturnInformation>();
-            var usedids = new List<string>();
-            foreach(var item in returninfo)
-            {
-                if(!usedids.Contains(item.PublishedFileID))
-                {
-                    tempreturninfo.Add(item);
-                    usedids.Add(item.PublishedFileID);
-                }
-            }
-
-            returninfo = tempreturninfo;
 
 
             return returninfo;
