@@ -107,7 +107,7 @@ namespace SquidBot_Sharp.Commands
 
             convertFrom = convertFrom.ToUpper();
 
-            var validTypes = new List<string> { "CAD", "HKD", "ISK", "PHP", "DKK", "HUF", "CZK", "AUD", "RON", "SEK", "IDR", "INR", "BRL", "RUB", "HRK", "JPY", "THB", "CHF", "SGD", "PLN", "BGN", "TRY", "CNY", "NOK", "NZD", "ZAR", "USD", "MXN", "ILS", "GBP", "KRW", "MYR" };
+            var validTypes = new List<string> { "CAD", "HKD", "ISK", "PHP", "DKK", "HUF", "CZK", "AUD", "RON", "SEK", "IDR", "INR", "BRL", "RUB", "HRK", "JPY", "THB", "CHF", "SGD", "PLN", "BGN", "TRY", "CNY", "NOK", "NZD", "ZAR", "USD", "MXN", "ILS", "GBP", "KRW", "MYR", "EUR" };
             if (!validTypes.Contains(convertFrom))
             {
                 await ctx.RespondAsync("Currency code to convert from was not recognized");

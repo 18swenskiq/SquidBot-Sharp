@@ -86,6 +86,7 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands<FaceitCMD>();
             _commands.RegisterCommands<InviteCMD>();
             _commands.RegisterCommands<SteamWorkshopCMD>();
+            _commands.RegisterCommands<OwnerUtilCMD>();
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
