@@ -15,35 +15,35 @@ namespace SquidBot_Sharp.Commands
     class SteamWorkshopCMD : BaseCommandModule
     {
         [Command("searchworkshopcsgo"), Description("Search the CSGO workshop")]
-        [Aliases("swscsgo")]
+        [Aliases("swscsgo", "swscs")]
         public async Task SearchWorkshopCSGO(CommandContext ctx, [RemainingText] string SearchQuery)
         {
             await SearchWorkshop(ctx, SearchQuery, 730);
         }
 
         [Command("searchworkshoptf2"), Description("Search the TF2 workshop")]
-        [Aliases("swstf2")]
+        [Aliases("swstf2", "swstf")]
         public async Task SearchWorkshopTF2(CommandContext ctx, [RemainingText] string SearchQuery)
         {
             await SearchWorkshop(ctx, SearchQuery, 440);
         }
 
         [Command("searchworkshopl4d2"), Description("Search the L4D2 workshop")]
-        [Aliases("swsl4d2")]
+        [Aliases("swsl4d2", "swslfd2")]
         public async Task SearchWorkshopL4D2(CommandContext ctx, [RemainingText] string SearchQuery)
         {
             await SearchWorkshop(ctx, SearchQuery, 550);
         }
 
         [Command("searchworkshopportal2"), Description("Search the Portal 2 workshop")]
-        [Aliases("swsp2")]
+        [Aliases("swsp2", "swsportal2")]
         public async Task SearchWorkshopPortal2(CommandContext ctx, [RemainingText] string SearchQuery)
         {
             await SearchWorkshop(ctx, SearchQuery, 620);
         }
 
         [Command("searchworkshopgmod"), Description("Search the Garry's Mod workshop")]
-        [Aliases("swsgmod")]
+        [Aliases("swsgmod", "swsgm")]
         public async Task SearchWorkshopGMOD(CommandContext ctx, [RemainingText] string SearchQuery)
         {
             await SearchWorkshop(ctx, SearchQuery, 4000);
