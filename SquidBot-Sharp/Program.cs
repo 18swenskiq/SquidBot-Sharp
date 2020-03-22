@@ -10,9 +10,11 @@ using Newtonsoft.Json;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Modules;
+using SquidBot_Sharp.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SquidBot_Sharp
@@ -23,6 +25,7 @@ namespace SquidBot_Sharp
         public DiscordClient _client { get; set; }
         public InteractivityExtension _interactivity { get; set; }
         public CommandsNextExtension _commands { get; set; }
+        public CustomActivities _activities { get; set; }
 
         public static void Main(string[] args)
         {
@@ -101,17 +104,37 @@ namespace SquidBot_Sharp
 
             await _client.ConnectAsync();
 
-            
-
             await Task.Delay(-1);
         }
 
         private Task Client_Ready(ReadyEventArgs e)
         {
             e.Client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Client is ready to process events.", DateTime.Now);
+        
+
+           // var startTimePeriod = TimeSpan.Zero;
+            //var periodTimeSpan = TimeSpan.FromMinutes(1);
+
+            _activities = new CustomActivities();
+
+            Thread statusupdate = new Thread(new ThreadStart(UpdateStatus));
+            statusupdate.Start();
 
             return Task.CompletedTask;
         }
+
+        private void UpdateStatus()
+        {
+            while (true)
+            {
+                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Attempting to update status...", DateTime.Now);
+                var nextpayload = _activities.GetNextActivity();
+                if (nextpayload.Status.Contains("NUMBER_GUILDS")) nextpayload.Status = nextpayload.Status.Replace("NUMBER_GUILDS", _client.Guilds.Count.ToString());
+                _client.UpdateStatusAsync(new DiscordActivity(nextpayload.Status, nextpayload.ActType));
+                Thread.Sleep(1000 * 60);
+            }
+        }
+
 
         private Task Client_GuildAvailable(GuildCreateEventArgs e)
         {
