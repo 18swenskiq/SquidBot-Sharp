@@ -9,7 +9,7 @@ using DSharpPlus.Interactivity;
 
 namespace SquidBot_Sharp.Commands
 {
-    public class KetalQuoteCMD
+    public class KetalQuoteCMD : BaseCommandModule
     {
         [Command("ketalquote"), Description("Get a quote from the great Russian Legend, Ketal")]
         [Aliases("kq", "ketalq")]
@@ -43,12 +43,12 @@ namespace SquidBot_Sharp.Commands
         [Command("addketalquote"), Description("Add a ketal quote (Squidski Only)"), Hidden, RequireOwner]
         public async Task AddKetalQuote(CommandContext ctx)
         {
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
 
             await ctx.RespondAsync("Please enter the quote (type 'exit' to exit the interactive session)");
             var quote = await interactivity.WaitForMessageAsync(kq => kq.Author == ctx.User, TimeSpan.FromSeconds(60));
 
-            if(quote.Message.Content.ToLower() == "exit")
+            if(quote.Result.Content.ToLower() == "exit")
             {
                 await ctx.RespondAsync("Exiting...");
                 return;
@@ -57,7 +57,7 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("Please enter the footer (type 'exit' to exit the interactive session)");
             var footer = await interactivity.WaitForMessageAsync(kq => kq.Author == ctx.User, TimeSpan.FromSeconds(60));
 
-            if (quote.Message.Content.ToLower() == "exit")
+            if (quote.Result.Content.ToLower() == "exit")
             {
                 await ctx.RespondAsync("Exiting...");
                 return;
@@ -68,7 +68,7 @@ namespace SquidBot_Sharp.Commands
 
             var num = test.Max();
 
-            var newQuote = new KetalQuote { Quote = quote.Message.Content, Footer = footer.Message.Content, QuoteNumber = num + 1 };
+            var newQuote = new KetalQuote { Quote = quote.Result.Content, Footer = footer.Result.Content, QuoteNumber = num + 1 };
             KetalQuoteModule.Quotes.Add(newQuote);
 
             KetalQuoteModule.SerializeQuotes();

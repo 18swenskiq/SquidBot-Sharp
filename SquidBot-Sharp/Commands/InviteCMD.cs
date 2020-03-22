@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    class InviteCMD
+    class InviteCMD : BaseCommandModule
     {
         [Command("invite"), Description("Invite MechaSquidski to your server!")]
         public async Task Invite(CommandContext ctx)

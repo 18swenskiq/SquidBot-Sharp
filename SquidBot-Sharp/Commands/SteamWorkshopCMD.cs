@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    class SteamWorkshopCMD
+    class SteamWorkshopCMD : BaseCommandModule
     {
         [Command("searchworkshopcsgo"), Description("Search the CSGO workshop")]
         [Aliases("swscsgo")]

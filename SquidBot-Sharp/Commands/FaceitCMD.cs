@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    public class FaceitCMD
+    public class FaceitCMD : BaseCommandModule
     {
         public FaceitClient faceitClient { get; set; }
 

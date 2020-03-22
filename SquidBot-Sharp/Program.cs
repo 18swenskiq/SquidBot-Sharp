@@ -4,11 +4,14 @@ using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Modules;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -18,8 +21,8 @@ namespace SquidBot_Sharp
     {
 
         public DiscordClient _client { get; set; }
-        public InteractivityModule _interactivity { get; set; }
-        public CommandsNextModule _commands { get; set; }
+        public InteractivityExtension _interactivity { get; set; }
+        public CommandsNextExtension _commands { get; set; }
         //public SettingsFile _settings { get; set; }
 
         public static void Main(string[] args)
@@ -59,34 +62,56 @@ namespace SquidBot_Sharp
 
             _client.UseInteractivity(new InteractivityConfiguration
             {
-                PaginationBehaviour = TimeoutBehaviour.Ignore,
-
-                PaginationTimeout = TimeSpan.FromMinutes(5),
+                PaginationBehaviour = PaginationBehaviour.WrapAround,
 
                 Timeout = TimeSpan.FromMinutes(2)
             });
 
+
+            //var deps = new ServiceCollection()
+                //.AddSingleton(new KetalQuoteCMD())
+                //.AddSingleton(new CurrencyCMD())
+                //.AddSingleton(new ConvertCMD())
+                //.AddSingleton(new TimesCMD())
+                //.AddSingleton(new FaceitCMD())
+                //.AddSingleton(new InviteCMD())
+                //.AddSingleton(new SteamWorkshopCMD())
+                //.AddSingleton(new OwnerUtilCMD())
+                //.BuildServiceProvider();
+
+
             var commandconfig = new CommandsNextConfiguration
             {
-                StringPrefix = ">",
+                StringPrefixes = new List<string> { ">" },
 
                 CaseSensitive = false,          
+
+                //Services = deps,
 
                 EnableDms = true,
                 EnableMentionPrefix = true
             };
 
+
             _commands = _client.UseCommandsNext(commandconfig);
             _commands.CommandExecuted += Commands_CommandExecuted;
             _commands.CommandErrored += Commands_CommandErrored;
-            _commands.RegisterCommands<KetalQuoteCMD>();
-            _commands.RegisterCommands<CurrencyCMD>();
-            _commands.RegisterCommands<ConvertCMD>();
-            _commands.RegisterCommands<TimesCMD>();
-            _commands.RegisterCommands<FaceitCMD>();
-            _commands.RegisterCommands<InviteCMD>();
-            _commands.RegisterCommands<SteamWorkshopCMD>();
-            _commands.RegisterCommands<OwnerUtilCMD>();
+            //_commands.RegisterCommands<KetalQuoteCMD>();
+            _commands.RegisterCommands(typeof(KetalQuoteCMD));
+            //_commands.RegisterCommands<CurrencyCMD>();
+            _commands.RegisterCommands(typeof(CurrencyCMD));
+            //_commands.RegisterCommands<ConvertCMD>();
+            _commands.RegisterCommands(typeof(ConvertCMD));
+            //_commands.RegisterCommands<TimesCMD>();
+            _commands.RegisterCommands(typeof(TimesCMD));
+            //_commands.RegisterCommands<FaceitCMD>();
+            _commands.RegisterCommands(typeof(FaceitCMD));
+            //_commands.RegisterCommands<InviteCMD>();
+            _commands.RegisterCommands(typeof(InviteCMD));
+            //_commands.RegisterCommands<SteamWorkshopCMD>();
+            _commands.RegisterCommands(typeof(SteamWorkshopCMD));
+            //_commands.RegisterCommands<OwnerUtilCMD>();
+            _commands.RegisterCommands(typeof(OwnerUtilCMD));
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
@@ -98,6 +123,8 @@ namespace SquidBot_Sharp
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "KetalQuotes are set up", DateTime.Now);
 
             await _client.ConnectAsync();
+
+            
 
             await Task.Delay(-1);
         }

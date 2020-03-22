@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    public class ConvertCMD
+    public class ConvertCMD : BaseCommandModule
     {
         [Command("convert"), Description("Convert a measurement unit to its corresponding metric or imperial unit")]
         public async Task ConvertUnits(CommandContext ctx, [Description("Total conversion payload, or only the number amount")] string ConversionAmountAndOrUnits, [Description("Conversion units if there was a space")]string ConversionUnits = null)

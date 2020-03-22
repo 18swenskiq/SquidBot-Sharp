@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    public class TimesCMD
+    public class TimesCMD : BaseCommandModule
     {
         [Command("times"), Description("Get current times across the world")]
         public async Task Times(CommandContext ctx)
@@ -25,11 +25,11 @@ namespace SquidBot_Sharp.Commands
             var memberswithinfo = new List<DiscordMember>();
             foreach(var member in ctx.Guild.Members)
             {
-                var testingprofile = upm.CheckIfUserProfileExists(member.Id);
+                var testingprofile = upm.CheckIfUserProfileExists(member.Value);
                 if (testingprofile == null) continue;
                 if (testingprofile.TimeZone == null) continue;
 
-                memberswithinfo.Add(member);
+                memberswithinfo.Add(member.Value);
             }
 
             if(memberswithinfo.Count == 0)
@@ -155,17 +155,17 @@ namespace SquidBot_Sharp.Commands
         public async Task SudoSetTimeZone(CommandContext ctx, DiscordMember Mentioned)
         {
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
             await ctx.RespondAsync($"Please enter either the largest city near you or in your timezone");
             var userinput = await interactivity.WaitForMessageAsync(us => us.Author == ctx.User, TimeSpan.FromSeconds(120));
-            string argument = userinput.Message.Content;
+            string argument = userinput.Result.Content;
 
             TimeZoneInfo usertimezone = null;
 
             var cities = new CitiesTimezones();
             foreach (var city in cities.entries)
             {
-                if (city.CityName.ToLower() == userinput.Message.Content.ToLower())
+                if (city.CityName.ToLower() == userinput.Result.Content.ToLower())
                 {
                     usertimezone = city.TimeZone;
                     break;
@@ -210,17 +210,17 @@ namespace SquidBot_Sharp.Commands
         public async Task SetTimeZone(CommandContext ctx)
         {
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
             await ctx.RespondAsync($"Please enter either the largest city near you or in your timezone");
             var userinput = await interactivity.WaitForMessageAsync(us => us.Author == ctx.User, TimeSpan.FromSeconds(120));
-            string argument = userinput.Message.Content;
+            string argument = userinput.Result.Content;
 
             TimeZoneInfo usertimezone = null;
 
             var cities = new CitiesTimezones();
             foreach(var city in cities.entries)
             {
-                if(city.CityName.ToLower() == userinput.Message.Content.ToLower())
+                if(city.CityName.ToLower() == userinput.Result.Content.ToLower())
                 {
                     usertimezone = city.TimeZone;
                     break;

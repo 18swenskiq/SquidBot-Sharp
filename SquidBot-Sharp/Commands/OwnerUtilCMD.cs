@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
-    class OwnerUtilCMD
+    class OwnerUtilCMD : BaseCommandModule
     {
         [Command("todo"), RequireOwner]
         public async Task Todo(CommandContext ctx, [RemainingText] string dothis)
