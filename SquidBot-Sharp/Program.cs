@@ -23,7 +23,6 @@ namespace SquidBot_Sharp
         public DiscordClient _client { get; set; }
         public InteractivityExtension _interactivity { get; set; }
         public CommandsNextExtension _commands { get; set; }
-        //public SettingsFile _settings { get; set; }
 
         public static void Main(string[] args)
         {
@@ -68,25 +67,11 @@ namespace SquidBot_Sharp
             });
 
 
-            //var deps = new ServiceCollection()
-                //.AddSingleton(new KetalQuoteCMD())
-                //.AddSingleton(new CurrencyCMD())
-                //.AddSingleton(new ConvertCMD())
-                //.AddSingleton(new TimesCMD())
-                //.AddSingleton(new FaceitCMD())
-                //.AddSingleton(new InviteCMD())
-                //.AddSingleton(new SteamWorkshopCMD())
-                //.AddSingleton(new OwnerUtilCMD())
-                //.BuildServiceProvider();
-
-
             var commandconfig = new CommandsNextConfiguration
             {
                 StringPrefixes = new List<string> { ">" },
 
                 CaseSensitive = false,          
-
-                //Services = deps,
 
                 EnableDms = true,
                 EnableMentionPrefix = true
@@ -96,21 +81,13 @@ namespace SquidBot_Sharp
             _commands = _client.UseCommandsNext(commandconfig);
             _commands.CommandExecuted += Commands_CommandExecuted;
             _commands.CommandErrored += Commands_CommandErrored;
-            //_commands.RegisterCommands<KetalQuoteCMD>();
             _commands.RegisterCommands(typeof(KetalQuoteCMD));
-            //_commands.RegisterCommands<CurrencyCMD>();
             _commands.RegisterCommands(typeof(CurrencyCMD));
-            //_commands.RegisterCommands<ConvertCMD>();
             _commands.RegisterCommands(typeof(ConvertCMD));
-            //_commands.RegisterCommands<TimesCMD>();
             _commands.RegisterCommands(typeof(TimesCMD));
-            //_commands.RegisterCommands<FaceitCMD>();
             _commands.RegisterCommands(typeof(FaceitCMD));
-            //_commands.RegisterCommands<InviteCMD>();
             _commands.RegisterCommands(typeof(InviteCMD));
-            //_commands.RegisterCommands<SteamWorkshopCMD>();
             _commands.RegisterCommands(typeof(SteamWorkshopCMD));
-            //_commands.RegisterCommands<OwnerUtilCMD>();
             _commands.RegisterCommands(typeof(OwnerUtilCMD));
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
