@@ -13,14 +13,15 @@ namespace SquidBot_Sharp.Commands
 {
     class TranslateCMD : BaseCommandModule
     {
-        [Command("translate"), Description("Translate to a given language (language is auto detected)")]
-        public async Task Translate(CommandContext ctx, string TranslateTo, [RemainingText] string TranslateQuery)
-        {
-            await TranslateCore(ctx, "ad", TranslateTo, TranslateQuery);
-            return;
-        }
+        //[Command("translate"), Description("Translate to a given language (language is auto detected)")]
+        //public async Task Translate(CommandContext ctx, string TranslateTo, [RemainingText] string TranslateQuery)
+        //{
+            //await TranslateCore(ctx, "ad", TranslateTo, TranslateQuery);
+            //return;
+        //}
 
-        [Command("translatem"), Description("Translate to a given language (language translating from must be specified")]
+        [Command("translate"), Description("Translate to a given language (language translating from must be specified")]
+        [Aliases("translatem")]
         public async Task TranslateManual(CommandContext ctx, string TranslateFrom, string TranslateTo, [RemainingText] string TranslateQuery)
         {
             await TranslateCore(ctx, TranslateFrom, TranslateTo, TranslateQuery);
