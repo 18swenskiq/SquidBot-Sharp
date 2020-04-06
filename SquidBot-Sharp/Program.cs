@@ -27,6 +27,9 @@ namespace SquidBot_Sharp
         public CommandsNextExtension _commands { get; set; }
         public CustomActivities _activities { get; set; }
 
+
+        public bool IsActivityServiceRunning { get; set; }
+
         public static void Main(string[] args)
         {
             var prog = new Program();
@@ -35,6 +38,7 @@ namespace SquidBot_Sharp
 
         public async Task RunBotAsync()
         {
+            IsActivityServiceRunning = false;
             using (StreamReader r = new StreamReader("settings.json"))
             {
                 string json = await r.ReadToEndAsync();
@@ -126,8 +130,14 @@ namespace SquidBot_Sharp
 
         private void UpdateStatus()
         {
+            if (IsActivityServiceRunning)
+            {
+                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Another status update task was attempting to launch. Supressing...", DateTime.Now);
+                return;
+            }
             while (true)
             {
+                IsActivityServiceRunning = true;
                 _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Attempting to update status...", DateTime.Now);
                 var nextpayload = _activities.GetNextActivity();
                 if (nextpayload.Status.Contains("NUMBER_GUILDS")) nextpayload.Status = nextpayload.Status.Replace("NUMBER_GUILDS", _client.Guilds.Count.ToString());
