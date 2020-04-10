@@ -43,6 +43,7 @@ namespace SquidBot_Sharp.Utilities
             entries.Add(BuildEntry("Darwin", "AUS Central Standard Time"));
             entries.Add(BuildEntry("Delhi", "India Standard Time"));
             entries.Add(BuildEntry("Dusseldorf", "Central European Standard Time"));
+            entries.Add(BuildEntry("Fucking", "W. Europe Standard Time"));
             entries.Add(BuildEntry("Hanoi", "SE Asia Standard Time"));
             entries.Add(BuildEntry("Harare", "South Africa Standard Time"));
             entries.Add(BuildEntry("Helsinki", "FLE Standard Time"));
@@ -93,6 +94,7 @@ namespace SquidBot_Sharp.Utilities
             entries.Add(BuildEntry("Santiago", "Pacific SA Standard Time"));
             entries.Add(BuildEntry("Sao Paulo", "E. South America Standard Time"));
             entries.Add(BuildEntry("Sarajevo", "Central European Standard Time"));
+            entries.Add(BuildEntry("Seattle", "Pacific Standard Time"));
             entries.Add(BuildEntry("Seoul", "Korea Standard Time"));
             entries.Add(BuildEntry("Shanghai", "China Standard Time"));
             entries.Add(BuildEntry("Skopje", "Central European Standard Time"));
