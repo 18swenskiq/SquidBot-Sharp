@@ -21,6 +21,7 @@ namespace SquidBot_Sharp.Utilities
             Activities.Add(new ActivityPayload { ActType = ActivityType.Watching, Status = "deez nuts" });
             Activities.Add(new ActivityPayload { ActType = ActivityType.Watching, Status = "speef money" });
             Activities.Add(new ActivityPayload { ActType = ActivityType.Watching, Status = "fuck like sex or fuck like fuck off" });
+            Activities.Add(new ActivityPayload { ActType = ActivityType.Playing, Status = "invite me with >invite!" });
         }
 
         public ActivityPayload GetNextActivity()
