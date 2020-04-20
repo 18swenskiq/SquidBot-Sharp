@@ -137,7 +137,7 @@ namespace SquidBot_Sharp.Commands
             timesstring += "```";
 
 
-            await ctx.RespondAsync("Use >settimezone to add your own time zone!\n" + timesstring);
+            await ctx.RespondAsync("Use `>settimezone` to add your own time zone!\n" + timesstring);
             return;
         }
 
