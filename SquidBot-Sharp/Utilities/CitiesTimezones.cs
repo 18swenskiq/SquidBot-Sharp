@@ -65,7 +65,7 @@ namespace SquidBot_Sharp.Utilities
             entries.Add(BuildEntry("Lagos", "W. Central Africa Standard Time"));
             entries.Add(BuildEntry("Lima", "SA Pacific Standard Time"));
             entries.Add(BuildEntry("Ljubljana", "Central European Standard Time"));
-            entries.Add(BuildEntry("London", "Greenwich Standard Time"));
+            entries.Add(BuildEntry("London", "GMT Standard Time"));
             entries.Add(BuildEntry("Los Angeles", "Pacific Standard Time"));
             entries.Add(BuildEntry("Mandrid", "Central European Standard Time"));
             entries.Add(BuildEntry("Manila", "Singapore Standard Time"));
