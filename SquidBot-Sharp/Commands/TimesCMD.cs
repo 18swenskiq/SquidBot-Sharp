@@ -204,9 +204,55 @@ namespace SquidBot_Sharp.Commands
             return;
         }
 
-
         [Command("settimezone"), Description("Set your time zone through a local city name")]
         [Aliases("addtimezone")]
+        [Priority(1)]
+        public async Task SetTimeZone(CommandContext ctx, string CityName)
+        {
+            TimeZoneInfo usertimezone = null;
+
+            var cities = new CitiesTimezones();
+            foreach(var city in cities.entries)
+            {
+                if(city.CityName.ToLower() == CityName.ToLower())
+                {
+                    usertimezone = city.TimeZone;
+                }
+            }
+            if (usertimezone == null)
+            {
+                await ctx.RespondAsync("City name could not be found. Try again with a different city in your timezone, or contact Squidski#9545 to add your city");
+                return;
+            }
+            var upm = new UserProfileModule();
+            UserProfile thisuserprofile = null;
+            thisuserprofile = upm.CheckIfUserProfileExists(ctx.User);
+            if (thisuserprofile == null)
+            {
+                thisuserprofile = upm.BuildUserProfile(usertimezone, ctx.User);
+                if (thisuserprofile == null)
+                {
+                    await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
+                    return;
+                }
+            }
+            else
+            {
+                var isModificationSucessful = upm.ModifyUserProfile(new UserProfile { TimeZone = usertimezone, UserID = thisuserprofile.UserID, Version = thisuserprofile.Version, ProfileName = ctx.User.Username });
+                if (!isModificationSucessful)
+                {
+                    await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
+                    return;
+                }
+                await ctx.RespondAsync("Timezone successfully updated");
+                return;
+            }
+            await ctx.RespondAsync("Timezone successfully updated");
+            return;
+        }
+
+        [Command("settimezone"), Description("Set your time zone through a local city name")]
+        [Priority(0)]
         public async Task SetTimeZone(CommandContext ctx)
         {
 

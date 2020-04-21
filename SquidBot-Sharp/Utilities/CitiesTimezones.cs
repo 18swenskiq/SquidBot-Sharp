@@ -71,15 +71,20 @@ namespace SquidBot_Sharp.Utilities
             entries.Add(BuildEntry("Manila", "Singapore Standard Time"));
             entries.Add(BuildEntry("Melbourne", "AUS Eastern Standard Time"));
             entries.Add(BuildEntry("Mexico City", "Central Standard Time (Mexico)"));
+            entries.Add(BuildEntry("Miami", "US Eastern Standard Time"));
             entries.Add(BuildEntry("Minsk", "E. Europe Standard Time"));
             entries.Add(BuildEntry("Montevideo", "Montevideo Standard Time"));
             entries.Add(BuildEntry("Moscow", "Russian Standard Time"));
             entries.Add(BuildEntry("Mumbai", "India Standard Time"));
             entries.Add(BuildEntry("Muscat", "Arabian Standard Time"));
             entries.Add(BuildEntry("Nairobi", "E. Africa Standard Time"));
+            entries.Add(BuildEntry("NYC", "US Eastern Standard Time"));
+            entries.Add(BuildEntry("New York", "US Eastern Standard Time"));
             entries.Add(BuildEntry("New York City", "US Eastern Standard Time"));
             entries.Add(BuildEntry("Novosibirsk", "N. Central Asia Standard Time"));
+            entries.Add(BuildEntry("Oklahoma City", "Central Standard Time"));
             entries.Add(BuildEntry("Onitsha", "W. Central Africa Standard Time"));
+            entries.Add(BuildEntry("Orlando", "US Eastern Standard Time"));
             entries.Add(BuildEntry("Osaka", "Tokyo Standard Time"));
             entries.Add(BuildEntry("Paris", "Central European Standard Time"));
             entries.Add(BuildEntry("Perth", "W. Australia Standard Time"));
@@ -108,6 +113,7 @@ namespace SquidBot_Sharp.Utilities
             entries.Add(BuildEntry("Tehran", "Iran Standard Time"));
             entries.Add(BuildEntry("Tokyo", "Tokyo Standard Time"));
             entries.Add(BuildEntry("Toronto", "US Eastern Standard Time"));
+            entries.Add(BuildEntry("Tulsa", "Central Standard Time"));
             entries.Add(BuildEntry("Ulaan Bataar", "North Asia East Standard Time"));
             entries.Add(BuildEntry("Vancouver", "Pacific Standard Time"));
             entries.Add(BuildEntry("Vienna", "W. Europe Standard Time"));
