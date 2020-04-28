@@ -37,6 +37,7 @@ namespace SquidBot_Sharp.Modules
                 returnarray = returnarray.Where(x => !string.IsNullOrEmpty(x.Trim())).ToArray();
 
                 // TODO: Remove all entries that start with `>`
+                returnarray = returnarray.Where(x => !x.StartsWith(">")).ToArray();
             }
             return returnarray;
         }
