@@ -26,7 +26,7 @@ namespace SquidBot_Sharp
         public InteractivityExtension _interactivity { get; set; }
         public CommandsNextExtension _commands { get; set; }
         public CustomActivities _activities { get; set; }
-        public MarkovModule _markov { get; set; }
+        public ImpersonateModule _impersonate { get; set; }
 
 
         public bool IsActivityServiceRunning { get; set; }
@@ -40,7 +40,7 @@ namespace SquidBot_Sharp
         public async Task RunBotAsync()
         {
             IsActivityServiceRunning = false;
-            _markov = new MarkovModule();
+            _impersonate = new ImpersonateModule();
             using (StreamReader r = new StreamReader("settings.json"))
             {
                 string json = await r.ReadToEndAsync();
@@ -100,6 +100,7 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands(typeof(SteamWorkshopCMD));
             _commands.RegisterCommands(typeof(OwnerUtilCMD));
             _commands.RegisterCommands(typeof(TranslateCMD));
+            _commands.RegisterCommands(typeof(ImpersonateCMD));
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
@@ -152,7 +153,7 @@ namespace SquidBot_Sharp
 
         private async Task<Task> Client_MessageCreated(MessageCreateEventArgs e)
         {
-            await _markov.WriteEntry(e);
+            await _impersonate.WriteEntry(e);
 
             return Task.CompletedTask;
         }
