@@ -26,6 +26,7 @@ namespace SquidBot_Sharp
         public InteractivityExtension _interactivity { get; set; }
         public CommandsNextExtension _commands { get; set; }
         public CustomActivities _activities { get; set; }
+        public MarkovModule _markov { get; set; }
 
 
         public bool IsActivityServiceRunning { get; set; }
@@ -39,6 +40,7 @@ namespace SquidBot_Sharp
         public async Task RunBotAsync()
         {
             IsActivityServiceRunning = false;
+            _markov = new MarkovModule();
             using (StreamReader r = new StreamReader("settings.json"))
             {
                 string json = await r.ReadToEndAsync();
@@ -65,6 +67,7 @@ namespace SquidBot_Sharp
             _client.Ready += Client_Ready;
             _client.GuildAvailable += Client_GuildAvailable;
             _client.ClientErrored += Client_ClientError;
+            _client.MessageCreated += Client_MessageCreated;
 
             _client.UseInteractivity(new InteractivityConfiguration
             {
@@ -146,6 +149,13 @@ namespace SquidBot_Sharp
             }
         }
 
+
+        private async Task<Task> Client_MessageCreated(MessageCreateEventArgs e)
+        {
+            await _markov.WriteEntry(e);
+
+            return Task.CompletedTask;
+        }
 
         private Task Client_GuildAvailable(GuildCreateEventArgs e)
         {
