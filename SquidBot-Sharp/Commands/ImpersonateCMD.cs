@@ -10,23 +10,31 @@ namespace SquidBot_Sharp.Commands
 {
     public class ImpersonateCMD : BaseCommandModule
     {
-        [Command("impersonate"), Description("Impersonate a user based on a Markov Chain")]
-        public async Task ImpersonateMarkov(CommandContext ctx, DiscordMember member)
+        [Command("impersonate"), Description("Impersonate a user using a random AI method")]
+        [Cooldown(1, 60, CooldownBucketType.User)]
+        public async Task Impersonate(CommandContext ctx, DiscordMember member)
         {
             var impersonation = new ImpersonateModule { };
 
             var usertext = await impersonation.LoadFile(member.Id.ToString());
-            if(usertext.Length < 1)
+            if (usertext.Length < 1)
             {
                 await ctx.RespondAsync("No data detected for that user!");
                 return;
             }
 
-            if(usertext.Length < 100)
+            if (usertext.Length < 100)
             {
-                await ctx.RespondAsync($"{member.Username} is currently at {usertext.Length}% of minimum data needed to impersonate.");
+                await ctx.RespondAsync($"{member.Username} is currently at **{usertext.Length}%** of minimum data needed to impersonate.");
                 return;
             }
+
+            await ImpersonateMarkov(ctx, member, usertext);
+
+        }
+
+        public async Task ImpersonateMarkov(CommandContext ctx, DiscordMember member, string[] usertext)
+        {
 
             // Start the markov chains
             var chain = new MarkovChain<string>(1);
