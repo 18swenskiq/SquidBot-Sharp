@@ -48,7 +48,8 @@ namespace SquidBot_Sharp
 
                 SettingsFile.botkey = sfd.botkey;
                 SettingsFile.databasepassword = sfd.databasepassword;
-                SettingsFile.databaseurl = sfd.databaseurl;
+                SettingsFile.databaseserver = sfd.databaseserver;
+                SettingsFile.databasename = sfd.databasename;
                 SettingsFile.databaseusername = sfd.databaseusername;
                 SettingsFile.faceitapikey = sfd.faceitapikey;
                 SettingsFile.steamwebapikey = sfd.steamwebapikey;
@@ -104,10 +105,18 @@ namespace SquidBot_Sharp
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
-            var _database = new DatabaseModule(SettingsFile.databaseurl, SettingsFile.databaseusername, SettingsFile.databasepassword);
+            //var _database = new DatabaseModule(SettingsFile.databaseurl, SettingsFile.databaseusername, SettingsFile.databasepassword);
+            try
+            {
+                var _database = new DatabaseModule(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
+            }
+            catch (Exception ex)
+            {
+                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Database connection failed", DateTime.Now);
+            }
 
             // Startup KetalQuoteModule
-            DatabaseModule.RetrieveFile(@"datafiles\data.ketalquotes");
+            //DatabaseModule.RetrieveFile(@"datafiles\data.ketalquotes");
             KetalQuoteModule.DeserializeQuotes();
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "KetalQuotes are set up", DateTime.Now);
 

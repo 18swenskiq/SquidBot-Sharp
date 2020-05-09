@@ -1,5 +1,6 @@
 ﻿using Renci.SshNet;
 using System;
+using System.Data.SqlClient;
 using System.IO;
 using System.Net;
 
@@ -7,35 +8,22 @@ namespace SquidBot_Sharp.Modules
 {
     public class DatabaseModule
     {
-        private static SftpClient _ftp { get; set; }
+        private static SqlConnection cnn { get; set; }
 
-        public DatabaseModule(string host, string username, string password)
+        public DatabaseModule(string databaseserver, string databasename, string username, string password)
         {
-            _ftp = new SftpClient(host, 22, username, password);
-        }
-
-
-        public static void UploadFile(string sourceFile)
-        {
-            _ftp.Connect();
-            using(FileStream fs = new FileStream(sourceFile, FileMode.Open))
+            var sqlconnectionstring = new SqlConnectionStringBuilder
             {
-                _ftp.BufferSize = 4 * 1024;
-                _ftp.UploadFile(fs, "datafiles/" + Path.GetFileName(sourceFile));
-            }
-            _ftp.Disconnect();
+                DataSource = databaseserver,
+                InitialCatalog = databasename,
+                UserID = username,
+                Password = password,
+                ConnectTimeout = 10,
+            };
+            cnn = new SqlConnection(sqlconnectionstring.ToString());
+            cnn.Open();
+            Console.WriteLine("Connection opened!");
+            cnn.Close();
         }
-
-        public static void RetrieveFile(string pathOfFileToGet)
-        {
-            _ftp.Connect();
-            using (Stream fileStream = File.Create(@$"{Directory.GetCurrentDirectory()}\{pathOfFileToGet}"))
-            {
-                _ftp.DownloadFile(Path.Combine(@"datafiles/", Path.GetFileName(pathOfFileToGet)), fileStream);
-            }
-            _ftp.Disconnect();
-        }
-
-
     }
 }

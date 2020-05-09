@@ -72,7 +72,7 @@ namespace SquidBot_Sharp.Commands
             KetalQuoteModule.Quotes.Add(newQuote);
 
             KetalQuoteModule.SerializeQuotes();
-            DatabaseModule.UploadFile("datafiles/data.ketalquotes");
+            //DatabaseModule.UploadFile("datafiles/data.ketalquotes");
 
             await ctx.RespondAsync($"Quote successfully added as #{num+1}");
         }
