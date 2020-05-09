@@ -11,7 +11,7 @@ namespace SquidBot_Sharp.Commands
     public class ImpersonateCMD : BaseCommandModule
     {
         [Command("impersonate"), Description("Impersonate a user using a random AI method")]
-        [Cooldown(1, 60, CooldownBucketType.User)]
+        [Cooldown(1, 30, CooldownBucketType.User)]
         public async Task Impersonate(CommandContext ctx, DiscordMember member)
         {
             var impersonation = new ImpersonateModule { };

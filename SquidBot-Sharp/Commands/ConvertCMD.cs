@@ -11,6 +11,7 @@ namespace SquidBot_Sharp.Commands
     public class ConvertCMD : BaseCommandModule
     {
         [Command("convert"), Description("Convert a measurement unit to its corresponding metric or imperial unit")]
+        [Cooldown(1, 2, CooldownBucketType.User)]
         public async Task ConvertUnits(CommandContext ctx, [Description("Total conversion payload, or only the number amount")] string ConversionAmountAndOrUnits, [Description("Conversion units if there was a space")]string ConversionUnits = null)
         {
             double convertAmount = 0;

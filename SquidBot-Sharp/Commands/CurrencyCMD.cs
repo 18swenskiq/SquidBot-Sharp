@@ -14,6 +14,7 @@ namespace SquidBot_Sharp.Commands
     public class CurrencyCMD : BaseCommandModule
     {
         [Command("currency"), Description("Convert a currency value to another currency")]
+        [Cooldown(1, 2, CooldownBucketType.User)]
         public async Task Currency(CommandContext ctx, string argument1, string argument2 = null, string argument3 = null)
         {
             double convertAmount = 0;

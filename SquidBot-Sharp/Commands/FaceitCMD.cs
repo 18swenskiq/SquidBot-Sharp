@@ -18,6 +18,7 @@ namespace SquidBot_Sharp.Commands
 
         [Command("faceitplayerdetails")]
         [Aliases("faceitpd")]
+        [Cooldown(1, 10, CooldownBucketType.User)]
         public async Task FaceitDetails(CommandContext ctx, [RemainingText, Description("The username of the Faceit account to get details for")] string username)
         {
 

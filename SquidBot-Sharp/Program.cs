@@ -1,5 +1,6 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -106,14 +107,14 @@ namespace SquidBot_Sharp
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
             //var _database = new DatabaseModule(SettingsFile.databaseurl, SettingsFile.databaseusername, SettingsFile.databasepassword);
-            try
-            {
-                var _database = new DatabaseModule(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
-            }
-            catch (Exception ex)
-            {
-                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Database connection failed", DateTime.Now);
-            }
+            //try
+            //{
+                //var _database = new DatabaseModule(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
+            //}
+            //catch (Exception ex)
+            //{
+                //_client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Database connection failed", DateTime.Now);
+            //}
 
             // Startup KetalQuoteModule
             //DatabaseModule.RetrieveFile(@"datafiles\data.ketalquotes");
@@ -194,6 +195,19 @@ namespace SquidBot_Sharp
 
             if (e.Exception is ChecksFailedException ex)
             {
+                var checks = ex.FailedChecks;
+                if(checks[0].GetType() == typeof(CooldownAttribute))
+                {
+                    var ratelimitemoji = DiscordEmoji.FromGuildEmote(e.Context.Client, 628767100709765158);
+                    var ratelimitembed = new DiscordEmbedBuilder
+                    {
+                        Title = "You have been rate limited",
+                        Description = $"{ratelimitemoji} Please slow down your command usage",
+                        Color = new DiscordColor(0x0f00ff)
+                    };
+                    await e.Context.RespondAsync("", embed: ratelimitembed);
+                    return;
+                }
                 var emoji = DiscordEmoji.FromName(e.Context.Client, ":no_entry:");
 
                 var embed = new DiscordEmbedBuilder

@@ -17,6 +17,7 @@ namespace SquidBot_Sharp.Commands
     public class TimesCMD : BaseCommandModule
     {
         [Command("times"), Description("Get current times across the world")]
+        [Cooldown(1, 5, CooldownBucketType.User)]
         public async Task Times(CommandContext ctx)
         {
 
@@ -207,6 +208,7 @@ namespace SquidBot_Sharp.Commands
         [Command("settimezone"), Description("Set your time zone through a local city name")]
         [Aliases("addtimezone")]
         [Priority(1)]
+        [Cooldown(1, 5, CooldownBucketType.User)]
         public async Task SetTimeZone(CommandContext ctx, string CityName)
         {
             TimeZoneInfo usertimezone = null;
@@ -253,6 +255,7 @@ namespace SquidBot_Sharp.Commands
 
         [Command("settimezone"), Description("Set your time zone through a local city name")]
         [Priority(0)]
+        [Cooldown(1, 5, CooldownBucketType.User)]
         public async Task SetTimeZone(CommandContext ctx)
         {
 

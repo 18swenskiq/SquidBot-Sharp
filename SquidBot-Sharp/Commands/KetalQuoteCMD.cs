@@ -13,6 +13,7 @@ namespace SquidBot_Sharp.Commands
     {
         [Command("ketalquote"), Description("Get a quote from the great Russian Legend, Ketal")]
         [Aliases("kq", "ketalq")]
+        [Cooldown(1, 2, CooldownBucketType.User)]
         public async Task KetalQuote(CommandContext ctx, [Description("Which quote number you would like to get")] int quotenumber = 9999)
         {
             var thisketalquote = new KetalQuote();

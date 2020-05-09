@@ -22,6 +22,7 @@ namespace SquidBot_Sharp.Commands
 
         [Command("translate"), Description("Translate to a given language (language translating from must be specified")]
         [Aliases("translatem")]
+        [Cooldown(1, 5, CooldownBucketType.User)]
         public async Task TranslateManual(CommandContext ctx, string TranslateFrom, string TranslateTo, [RemainingText] string TranslateQuery)
         {
             await TranslateCore(ctx, TranslateFrom, TranslateTo, TranslateQuery);
