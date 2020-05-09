@@ -99,6 +99,7 @@ namespace SquidBot_Sharp.Commands
 
             }
             parsedresponse.TranslatedString = translatedstring;
+            parsedresponse.TranslatedString = parsedresponse.TranslatedString.TrimEnd(',');
             return parsedresponse;
         }
     }
