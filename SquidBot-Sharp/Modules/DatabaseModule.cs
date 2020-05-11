@@ -38,7 +38,7 @@ namespace SquidBot_Sharp.Modules
 
                     while (await rdr.ReadAsync())
                     {
-                        mylist.Add(rdr[0].ToString().Replace("SQUIDBOT_TOKEN_DQUOTE", "\"").Replace("SQUIDBOT_TOKEN_BACKSLASH", @"\"));
+                        mylist.Add(rdr[0].ToString());
                     }
                     await rdr.CloseAsync();
                 }
@@ -62,7 +62,7 @@ namespace SquidBot_Sharp.Modules
                 try
                 {
                     await con.OpenAsync();
-                    string sqlcommand = $"INSERT INTO UserMessages(UserID,Message) VALUES({userID},\"{message.Replace("\"", "SQUIDBOT_TOKEN_BACKSLASH").Replace("\"", "SQUIDBOT_TOKEN_DQUOTE")}\");";
+                    string sqlcommand = $"INSERT INTO UserMessages(UserID,Message) VALUES({userID},\"{message}\");";
                     MySqlCommand cmd = new MySqlCommand();
                     cmd.Connection = con;
 
@@ -70,7 +70,7 @@ namespace SquidBot_Sharp.Modules
                     await cmd.PrepareAsync();
 
                     cmd.Parameters.AddWithValue("@number", userID);
-                    cmd.Parameters.AddWithValue("@text", message.Replace("\"", "SQUIDBOT_TOKEN_BACKSLASH").Replace("\"", "SQUIDBOT_TOKEN_DQUOTE"));
+                    cmd.Parameters.AddWithValue("@text", message);
 
                     await cmd.ExecuteNonQueryAsync();
                 }
