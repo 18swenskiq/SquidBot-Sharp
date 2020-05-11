@@ -34,7 +34,6 @@ namespace SquidBot_Sharp.Modules
 
                     MySqlCommand cmd = new MySqlCommand(sqlquery, con);
 
-
                     var rdr = await cmd.ExecuteReaderAsync();
 
                     while (await rdr.ReadAsync())
@@ -64,8 +63,16 @@ namespace SquidBot_Sharp.Modules
                 {
                     await con.OpenAsync();
                     string sqlcommand = $"INSERT INTO UserMessages(UserID,Message) VALUES({userID},\"{message.Replace("\"", "SQUIDBOT_TOKEN_BACKSLASH").Replace("\"", "SQUIDBOT_TOKEN_DQUOTE")}\");";
-                    MySqlCommand cmd = new MySqlCommand(sqlcommand, con);
-                    cmd.ExecuteNonQuery();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "INSERT INTO UserMessages(UserID,Message) VALUES(@number, @text);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@number", userID);
+                    cmd.Parameters.AddWithValue("@text", message.Replace("\"", "SQUIDBOT_TOKEN_BACKSLASH").Replace("\"", "SQUIDBOT_TOKEN_DQUOTE"));
+
+                    await cmd.ExecuteNonQueryAsync();
                 }
                 catch (Exception ex)
                 {
