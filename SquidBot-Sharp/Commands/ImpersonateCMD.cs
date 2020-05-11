@@ -5,31 +5,37 @@ using Markov;
 using SquidBot_Sharp.Modules;
 using System;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace SquidBot_Sharp.Commands
 {
     public class ImpersonateCMD : BaseCommandModule
     {
         [Command("impersonate"), Description("Impersonate a user using a random AI method")]
-        [Cooldown(1, 30, CooldownBucketType.User)]
+        [Cooldown(1, 60, CooldownBucketType.User)]
         public async Task Impersonate(CommandContext ctx, DiscordMember member)
         {
-            var impersonation = new ImpersonateModule { };
+            await ctx.RespondAsync("Generating impersonation (this might take a second!)");
+            var userStrings = await DatabaseModule.GetUserMessages(member.Id);
+            if(DatabaseModule.HitException != null)
+            {
+                await ctx.RespondAsync($"An error occured: {DatabaseModule.HitException.Message}");
+                return;
+            }
+            var ListArray = userStrings.ToArray();
 
-            var usertext = await impersonation.LoadFile(member.Id.ToString());
-            if (usertext.Length < 1)
+            if (ListArray.Length < 1)
             {
                 await ctx.RespondAsync("No data detected for that user!");
                 return;
             }
 
-            if (usertext.Length < 100)
+            if (ListArray.Length < 100)
             {
-                await ctx.RespondAsync($"{member.Username} is currently at **{usertext.Length}%** of minimum data needed to impersonate.");
+                await ctx.RespondAsync($"{member.Username} is currently at **{ListArray.Length}%** of minimum data needed to impersonate.");
                 return;
             }
-
-            await ImpersonateMarkov(ctx, member, usertext);
+            await ImpersonateMarkov(ctx, member, ListArray);
 
         }
 

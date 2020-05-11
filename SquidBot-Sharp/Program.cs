@@ -103,18 +103,11 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands(typeof(OwnerUtilCMD));
             _commands.RegisterCommands(typeof(TranslateCMD));
             _commands.RegisterCommands(typeof(ImpersonateCMD));
+            //_commands.RegisterCommands(typeof(DatabaseCMD));
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
-            //var _database = new DatabaseModule(SettingsFile.databaseurl, SettingsFile.databaseusername, SettingsFile.databasepassword);
-            //try
-            //{
-                //var _database = new DatabaseModule(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
-            //}
-            //catch (Exception ex)
-            //{
-                //_client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Database connection failed", DateTime.Now);
-            //}
+            DatabaseModule.SetUpMySQLConnection(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
 
             // Startup KetalQuoteModule
             //DatabaseModule.RetrieveFile(@"datafiles\data.ketalquotes");
@@ -163,7 +156,16 @@ namespace SquidBot_Sharp
 
         private async Task<Task> Client_MessageCreated(MessageCreateEventArgs e)
         {
-            await _impersonate.WriteEntry(e);
+            if(e.Message.Content.StartsWith(">") || string.IsNullOrWhiteSpace(e.Message.Content) || e.Message.Content.StartsWith("+"))
+            {
+                return Task.CompletedTask;
+            }
+
+            await DatabaseModule.AddNewUserMessage(e.Author.Id, e.Message.Content);
+            if(DatabaseModule.HitException != null)
+            {
+                Console.WriteLine("FAILED");
+            }
 
             return Task.CompletedTask;
         }
