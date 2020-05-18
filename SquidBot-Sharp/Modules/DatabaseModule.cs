@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
+using SquidBot_Sharp.Models;
 
 namespace SquidBot_Sharp.Modules
 {
@@ -18,6 +19,37 @@ namespace SquidBot_Sharp.Modules
             ConnectionString = $"server={databaseserver};user={username};database={databasename};port=3306;password={password};";
             HitException = null;
         }
+
+        public static async Task BackupDatabase()
+        {
+            HitException = null;
+            var backuplocation = SettingsFile.databasebackuplocation.Replace("DATETIME", DateTime.Now.ToString("yyyy'-'MM'-'dd'_'HH'-'mm'-'ss"));
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    using (MySqlCommand cmd = new MySqlCommand())
+                    {
+                        using (MySqlBackup mb = new MySqlBackup(cmd))
+                        {
+                            cmd.Connection = con;
+                            await con.OpenAsync();
+                            mb.ExportToFile(backuplocation);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        } 
 
         public static async Task<List<string>> GetUserMessages(ulong userID)
         {

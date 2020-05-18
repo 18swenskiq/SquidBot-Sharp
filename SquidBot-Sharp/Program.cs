@@ -27,10 +27,13 @@ namespace SquidBot_Sharp
         public InteractivityExtension _interactivity { get; set; }
         public CommandsNextExtension _commands { get; set; }
         public CustomActivities _activities { get; set; }
-        public ImpersonateModule _impersonate { get; set; }
-
-
+        public ImpersonateModule _impersonate { get; set; }     
+        public Timer _timer { get; set; }
         public bool IsActivityServiceRunning { get; set; }
+
+
+        public readonly static int TIMER_INTERVAL = 60000;
+        public static readonly int BACKUP_TIME_HOUR = 3; 
 
         public static void Main(string[] args)
         {
@@ -54,6 +57,7 @@ namespace SquidBot_Sharp
                 SettingsFile.databaseusername = sfd.databaseusername;
                 SettingsFile.faceitapikey = sfd.faceitapikey;
                 SettingsFile.steamwebapikey = sfd.steamwebapikey;
+                SettingsFile.databasebackuplocation = sfd.databasebackuplocation;
             }
             var cfg = new DiscordConfiguration
             {
@@ -114,6 +118,10 @@ namespace SquidBot_Sharp
             KetalQuoteModule.DeserializeQuotes();
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "KetalQuotes are set up", DateTime.Now);
 
+            // Initiate timer for recurring tasks
+            _timer = new Timer(Tick, null, TIMER_INTERVAL, Timeout.Infinite);
+            _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Timer object for recurring tasks initiated", DateTime.Now);
+
             await _client.ConnectAsync();
 
             await Task.Delay(-1);
@@ -122,10 +130,6 @@ namespace SquidBot_Sharp
         private Task Client_Ready(ReadyEventArgs e)
         {
             e.Client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Client is ready to process events.", DateTime.Now);
-        
-
-           // var startTimePeriod = TimeSpan.Zero;
-            //var periodTimeSpan = TimeSpan.FromMinutes(1);
 
             _activities = new CustomActivities();
 
@@ -153,6 +157,29 @@ namespace SquidBot_Sharp
             }
         }
 
+
+        private async void Tick(object state)
+        {
+            // Perform tasks every minute
+            // Check if time is currently BACKUP_TIME_HOUR, if it is then
+            var DateTimeComparison = DateTime.Now;
+            if (DateTimeComparison.Hour == BACKUP_TIME_HOUR && DateTimeComparison.Minute == 0)
+            {
+                // If we've made it here, its time to automatically backup the database
+                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Starting automatic database backup...", DateTime.Now);
+                await DatabaseModule.BackupDatabase();
+                if(DatabaseModule.HitException != null)
+                {
+                    _client.DebugLogger.LogMessage(LogLevel.Warning, "MechaSquidski", $"Database could not be backed up due to {DatabaseModule.HitException.Message}", DateTime.Now);
+                }
+                else
+                {
+                    _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Automatic database backup successful", DateTime.Now);
+                }
+            }
+            // Schedule next timer
+            _timer?.Change(TIMER_INTERVAL, Timeout.Infinite);
+        }
 
         private async Task<Task> Client_MessageCreated(MessageCreateEventArgs e)
         {
