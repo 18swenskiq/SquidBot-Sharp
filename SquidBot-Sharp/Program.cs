@@ -29,7 +29,6 @@ namespace SquidBot_Sharp
         public CustomActivities _activities { get; set; }
         public ImpersonateModule _impersonate { get; set; }     
         public Timer _timer { get; set; }
-        public bool IsActivityServiceRunning { get; set; }
 
 
         public readonly static int TIMER_INTERVAL = 60000;
@@ -43,7 +42,6 @@ namespace SquidBot_Sharp
 
         public async Task RunBotAsync()
         {
-            IsActivityServiceRunning = false;
             _impersonate = new ImpersonateModule();
             using (StreamReader r = new StreamReader("settings.json"))
             {
@@ -124,6 +122,8 @@ namespace SquidBot_Sharp
 
             await _client.ConnectAsync();
 
+            _activities = new CustomActivities();
+
             await Task.Delay(-1);
         }
 
@@ -131,36 +131,18 @@ namespace SquidBot_Sharp
         {
             e.Client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Client is ready to process events.", DateTime.Now);
 
-            _activities = new CustomActivities();
-
-            Thread statusupdate = new Thread(new ThreadStart(UpdateStatus));
-            statusupdate.Start();
-
             return Task.CompletedTask;
         }
-
-        private void UpdateStatus()
-        {
-            if (IsActivityServiceRunning)
-            {
-                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Another status update task was attempting to launch. Supressing...", DateTime.Now);
-                return;
-            }
-            while (true)
-            {
-                IsActivityServiceRunning = true;
-                _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Attempting to update status...", DateTime.Now);
-                var nextpayload = _activities.GetNextActivity();
-                if (nextpayload.Status.Contains("NUMBER_GUILDS")) nextpayload.Status = nextpayload.Status.Replace("NUMBER_GUILDS", _client.Guilds.Count.ToString());
-                _client.UpdateStatusAsync(new DiscordActivity(nextpayload.Status, nextpayload.ActType));
-                Thread.Sleep(1000 * 60);
-            }
-        }
-
 
         private async void Tick(object state)
         {
             // Perform tasks every minute
+            // Update status
+            _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Updating status", DateTime.Now);
+            var nextpayload = _activities.GetNextActivity();
+            if (nextpayload.Status.Contains("NUMBER_GUILDS")) nextpayload.Status = nextpayload.Status.Replace("NUMBER_GUILDS", _client.Guilds.Count.ToString());
+            await _client.UpdateStatusAsync(new DiscordActivity(nextpayload.Status, nextpayload.ActType));
+
             // Check if time is currently BACKUP_TIME_HOUR, if it is then
             var DateTimeComparison = DateTime.Now;
             if (DateTimeComparison.Hour == BACKUP_TIME_HOUR && DateTimeComparison.Minute == 0)
@@ -177,6 +159,7 @@ namespace SquidBot_Sharp
                     _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Automatic database backup successful", DateTime.Now);
                 }
             }
+
             // Schedule next timer
             _timer?.Change(TIMER_INTERVAL, Timeout.Infinite);
         }
