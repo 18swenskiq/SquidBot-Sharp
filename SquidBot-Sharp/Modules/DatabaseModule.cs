@@ -86,6 +86,40 @@ namespace SquidBot_Sharp.Modules
             return mylist;
         }
 
+        public static async Task<List<string>> GetAllMessages()
+        {
+            HitException = null;
+            List<string> mylist = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT Message FROM UserMessages WHERE UserId != '{565566309257969668}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        mylist.Add(rdr[0].ToString());
+                    }
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return mylist;
+        }
+
         public static async Task AddNewUserMessage(ulong userID, string message)
         {
             HitException = null;
