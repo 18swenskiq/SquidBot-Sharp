@@ -15,6 +15,11 @@ namespace SquidBot_Sharp.Commands
         [Cooldown(1, 60, CooldownBucketType.User)]
         public async Task Impersonate(CommandContext ctx, DiscordMember member)
         {
+            if(ctx.Channel.Id == 572662006692315138)
+            {
+                await ctx.RespondAsync("This command is temporarily restricted from usage in this channel.");
+                return;
+            }
             await ctx.RespondAsync("Generating impersonation (this might take a second!)");
             var userStrings = await DatabaseModule.GetUserMessages(member.Id);
             if(DatabaseModule.HitException != null)
@@ -42,6 +47,11 @@ namespace SquidBot_Sharp.Commands
         [Cooldown(1, 60, CooldownBucketType.User)]
         public async Task ImpersonateAll(CommandContext ctx)
         {
+            if (ctx.Channel.Id == 572662006692315138)
+            {
+                await ctx.RespondAsync("This command is temporarily restricted from usage in this channel.");
+                return;
+            }
             await ctx.RespondAsync("Generating impersonation (this might take a second!)");
             var userStrings = await DatabaseModule.GetAllMessages();
             if (DatabaseModule.HitException != null)
