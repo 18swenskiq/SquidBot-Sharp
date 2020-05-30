@@ -12,8 +12,8 @@ namespace SquidBot_Sharp.Commands
     public class ImpersonateCMD : BaseCommandModule
     {
         [Command("impersonate"), Description("Impersonate a user using a random AI method")]
-        [Cooldown(1, 60, CooldownBucketType.User)]
-        public async Task Impersonate(CommandContext ctx, DiscordMember member)
+        [Cooldown(1, 10, CooldownBucketType.User)]
+        public async Task Impersonate(CommandContext ctx, [RemainingText] DiscordMember member)
         {
             if(ctx.Channel.Id == 572662006692315138)
             {
@@ -44,7 +44,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("impersonateall"), Description("Generate an impersonation from all collected message data")]
-        [Cooldown(1, 60, CooldownBucketType.User)]
+        [Cooldown(1, 10, CooldownBucketType.User)]
         public async Task ImpersonateAll(CommandContext ctx)
         {
             if (ctx.Channel.Id == 572662006692315138)
