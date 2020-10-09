@@ -6,7 +6,6 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
