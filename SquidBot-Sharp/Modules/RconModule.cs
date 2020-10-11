@@ -24,7 +24,7 @@ namespace SquidBot_Sharp.Modules
         {
             if (!_rconClients.ContainsKey(serverID))
             {
-                var server = DatabaseModule.GetTestServer(serverID);
+                var server = await DatabaseModule.GetTestServerInfo(serverID);
 
                 if (server == null) throw new NullReferenceException(nameof(serverID));
 
@@ -118,26 +118,27 @@ namespace SquidBot_Sharp.Modules
                 }
             });
 
-            if (await Task.WhenAny(t, Task.Delay(5 * 1000)) != t)
-            {
-                try
-                {
-                    client.Dispose();
-                }
-                catch
-                {
-                    Console.WriteLine("Failed disposing");
-                }
+            // TODO: Why the fuck does this break it?
+            //if (await Task.WhenAny(t, Task.Delay(5 * 1000)) != t)
+            //{
+                //try
+                //{
+                   // client.Dispose();
+               // }
+                //catch
+                //{
+                    //Console.WriteLine("Failed disposing");
+               // }
 
-                Console.WriteLine($"RCON: Failed to communicate with RCON server {serverID} within the timeout period." +
-                                  $"\nRetry count is `{recursiveRetryCount}` of `3`" +
-                                  $"\n`{serverID}`\n`{command}`");
+               // Console.WriteLine($"RCON: Failed to communicate with RCON server {serverID} within the timeout period." +
+                                  //$"\nRetry count is `{recursiveRetryCount}` of `3`" +
+                                  //$"\n`{serverID}`\n`{command}`");
 
-                reply = await (RconCommand(serverID, command, recursiveRetryCount + 1));
-            }
+                //reply = await RconCommand(serverID, command, recursiveRetryCount + 1);
+           // }
 
             _running = false;
-
+            Console.WriteLine(reply);
             reply = FormatRconServerReply(reply);
 
             if(string.IsNullOrWhiteSpace(reply))
@@ -160,7 +161,7 @@ namespace SquidBot_Sharp.Modules
 
         public async Task WakeRconServer(string serverID)
         {
-            await RconCommand(serverID, "//WakeServer_" + Guid.NewGuid().ToString().Substring(0, 6), false);
+            await RconCommand(serverID, "//WakeServer_" + Guid.NewGuid().ToString().Substring(0, 6));
         }
 
         public async Task<string[]> GetRunningLevelAsync(string server)

@@ -104,6 +104,11 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands(typeof(OwnerUtilCMD));
             _commands.RegisterCommands(typeof(TranslateCMD));
             _commands.RegisterCommands(typeof(ImpersonateCMD));
+            _commands.RegisterCommands(typeof(ServerCMD));
+
+            var RCONinstance = new RconModule();
+            RconInstance.RconModuleInstance = RCONinstance;
+
             //_commands.RegisterCommands(typeof(DatabaseCMD));
 
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
