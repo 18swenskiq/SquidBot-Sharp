@@ -183,6 +183,131 @@ namespace SquidBot_Sharp.Modules
             return resultList;
         }
 
+        public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
+        {
+            HitException = null;
+            string result = string.Empty;
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
+        public static async Task AddPlayerSteamID(string discordId, string steamId)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "INSERT INTO IDLink(DiscordID, SteamID) VALUES(@discordId, @steamId);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@discordId", discordId);
+                    cmd.Parameters.AddWithValue("@steamId", steamId);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
+        public static async Task DeletePlayerSteamID(string discordId)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = $"DELETE FROM IDLink WHERE DiscordID='{discordId}';";
+                    await cmd.PrepareAsync();
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
+        public static async Task UpdatePlayerSteamID(string discordId, string steamId)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "UPDATE IDLink SET(DiscordID, SteamID) VALUES(@discordId, @steamId);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@discordId", discordId);
+                    cmd.Parameters.AddWithValue("@steamId", steamId);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
         public static async Task AddPlayerMatchmakingStat(PlayerData player)
         {
             HitException = null;

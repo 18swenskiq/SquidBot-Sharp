@@ -1,5 +1,6 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,8 +97,14 @@ namespace SquidBot_Sharp.Modules
 
             PlayerData captain = null;
             PlayerData enemyCaptain = null;
+            PlayerData Team1Player1 = null;
+            PlayerData Team1Player2 = null;
+            PlayerData Team2Player1 = null;
+            PlayerData Team2Player2 = null;
+            string team1Name = string.Empty;
+            string team2Name = string.Empty;
 
-            if(readyToStart)
+            if (readyToStart)
             {
                 MatchFull = true;
                 List<PlayerData> players = new List<PlayerData>();
@@ -107,10 +114,10 @@ namespace SquidBot_Sharp.Modules
                 }
 
                 var teams = await GetPlayerMatchups(ctx, players);
-                PlayerData Team1Player1 = teams.Item1.Item1;
-                PlayerData Team1Player2 = teams.Item1.Item2;
-                PlayerData Team2Player1 = teams.Item2.Item1;
-                PlayerData Team2Player2 = teams.Item2.Item2;
+                Team1Player1 = teams.Item1.Item1;
+                Team1Player2 = teams.Item1.Item2;
+                Team2Player1 = teams.Item2.Item1;
+                Team2Player2 = teams.Item2.Item2;
 
                 captain = Team1Player1;
                 enemyCaptain = Team2Player1;
@@ -124,8 +131,8 @@ namespace SquidBot_Sharp.Modules
                 string team1Player2Half = Team1Player2.Name.Substring(t1p2L, Team1Player2.Name.Length - t1p2L);
                 string team2Player1Half = Team2Player1.Name.Substring(0, t2p1L);
                 string team2Player2Half = Team2Player2.Name.Substring(t2p2L, Team2Player2.Name.Length - t2p2L);
-                string team1Name = team1Player1Half + team1Player2Half;
-                string team2Name = team2Player1Half + team2Player2Half;
+                team1Name = team1Player1Half + team1Player2Half;
+                team2Name = team2Player1Half + team2Player2Half;
 
                 embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo +") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
                 embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ")");
@@ -193,19 +200,78 @@ namespace SquidBot_Sharp.Modules
                     }
 
                     SelectingMap = true;
-                    string reshuffleResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
+                    string mapSelectionResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
 
-                    if(reshuffleResult == ABORT_RESULT)
+                    if(mapSelectionResult == ABORT_RESULT)
                     {
                         break;
                     }
-                    else if(reshuffleResult != RANDOMIZE_RESULT)
+                    else if(mapSelectionResult != RANDOMIZE_RESULT)
                     {
                         //Start map
+                        await StartMap(mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
                     }
                 } while (true);
 
             }
+        }
+
+        private static async Task StartMap(string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
+        {
+            MatchConfigData configData = new MatchConfigData()
+            {
+                matchid = "example_match",
+                num_maps = 1,
+                players_per_team = 2,
+                min_players_to_ready = 2,
+                min_spectators_to_ready = 0,
+                skip_veto = true,
+                veto_first = "team1",
+                side_type = "standard",
+                spectators = new PlayerJsonData()
+                {
+                    players = new List<string>()
+                    {
+
+                    }
+                },
+                maplist = new List<string>()
+                {
+                    mapName
+                },
+                favored_percentage_team1 = 65,
+                favored_percentage_text = "HLTV Bets",
+                team1 = new TeamJsonData()
+                {
+                    name = team1Name,
+                    tag = team1Name,
+                    flag = "FR",
+                    logo = "nv",
+                    players = new List<string>()
+                    {
+                        await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID),
+                        await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID),
+                    }
+                },
+                team2 = new TeamJsonData()
+                {
+                    name = team2Name,
+                    tag = team2Name,
+                    flag = "SE",
+                    logo = "fntc",
+                    players = new List<string>()
+                    {
+                        await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID),
+                        await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID),
+                    }
+                },
+                cvars = new CvarsJsonData()
+                {
+                    hostname = "Match server #1"
+                }
+            };
+
+            string json = JsonConvert.SerializeObject(configData, Formatting.Indented);
         }
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)

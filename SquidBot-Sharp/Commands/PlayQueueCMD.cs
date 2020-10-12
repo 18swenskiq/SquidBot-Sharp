@@ -4,6 +4,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using FaceitLib.Models.Shared;
 using MySql.Data.MySqlClient.Memcached;
+using Newtonsoft.Json;
 using SquidBot_Sharp.Modules;
 using System;
 using System.Collections.Generic;
@@ -66,6 +67,26 @@ namespace SquidBot_Sharp.Commands
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[277360174371438592]);
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[66318815247466496]);
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[337684398294040577]);
+        }
+
+        [Command("test"), Description("Join CS:GO play session")]
+        public async Task Test(CommandContext ctx)
+        {
+            string steamId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
+
+            await ctx.RespondAsync("Your SteamID is " + steamId);
+        }
+
+        [Command("register"), Description("Register SteamID for games")]
+        public async Task Register(CommandContext ctx, string steamId)
+        {
+            string existingId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
+            if(existingId != string.Empty)
+            {
+                await DatabaseModule.DeletePlayerSteamID(ctx.Member.Id.ToString());
+            }
+            await DatabaseModule.AddPlayerSteamID(ctx.Member.Id.ToString(), steamId);
+            await ctx.RespondAsync("Steam ID added");
         }
 
         [Command("leaderboard"), Description("Display leaderboard")]
