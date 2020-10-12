@@ -218,6 +218,79 @@ namespace SquidBot_Sharp.Modules
             return result;
         }
 
+        public static async Task<List<string>> GetAllMapNames()
+        {
+            HitException = null;
+            List<string> result = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT MapName FROM MapData;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        if(!result.Contains(rdr[0].ToString()))
+                        {
+                            result.Add(rdr[0].ToString());
+                        }
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
+        public static async Task<string> GetMapIDFromName(string name)
+        {
+            HitException = null;
+            string result = string.Empty;
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT SteamID FROM MapData WHERE MapName='{name}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
         public static async Task AddPlayerSteamID(string discordId, string steamId)
         {
             HitException = null;
