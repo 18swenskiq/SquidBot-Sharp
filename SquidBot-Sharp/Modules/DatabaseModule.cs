@@ -88,6 +88,183 @@ namespace SquidBot_Sharp.Modules
             return mylist;
         }
 
+        public static async Task<PlayerData> GetPlayerMatchmakingStats(string playerId)
+        {
+            HitException = null;
+            PlayerData playerData = new PlayerData();
+            List<string> resultList = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT DisplayName, PlayerID, CurrentELO, GamesWon, GamesLost, RoundsWon, RoundsLost, KillCount, AssistCount, DeathCount, Headshots, MVPCount FROM MatchmakingStats WHERE PlayerID='{playerId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        resultList.Add(rdr[0].ToString());
+                        resultList.Add(rdr[1].ToString());
+                        resultList.Add(rdr[2].ToString());
+                        resultList.Add(rdr[3].ToString());
+                        resultList.Add(rdr[4].ToString());
+                        resultList.Add(rdr[5].ToString());
+                        resultList.Add(rdr[6].ToString());
+                        resultList.Add(rdr[7].ToString());
+                        resultList.Add(rdr[8].ToString());
+                        resultList.Add(rdr[9].ToString());
+                        resultList.Add(rdr[10].ToString());
+                        resultList.Add(rdr[11].ToString());
+                    }
+
+                    playerData.Name = resultList[0];
+                    playerData.ID = resultList[1];
+                    playerData.CurrentElo = System.Convert.ToSingle(resultList[2]);
+                    playerData.TotalGamesWon = System.Convert.ToInt32(resultList[3]);
+                    playerData.TotalGamesLost = System.Convert.ToInt32(resultList[4]);
+                    playerData.TotalRoundsWon = System.Convert.ToInt32(resultList[5]);
+                    playerData.TotalRoundsLost = System.Convert.ToInt32(resultList[6]);
+                    playerData.TotalKillCount = System.Convert.ToInt32(resultList[7]);
+                    playerData.TotalAssistCount = System.Convert.ToInt32(resultList[8]);
+                    playerData.TotalDeathCount = System.Convert.ToInt32(resultList[9]);
+                    playerData.TotalHeadshotCount = System.Convert.ToInt32(resultList[10]);
+                    playerData.TotalMVPCount = System.Convert.ToInt32(resultList[11]);
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return playerData;
+        }
+
+        public static async Task<List<string>> GetPlayerMatchmakingStatsIds()
+        {
+            HitException = null;
+            List<string> resultList = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT PlayerID, DisplayName FROM MatchmakingStats;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        resultList.Add(rdr[0].ToString());
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return resultList;
+        }
+
+        public static async Task AddPlayerMatchmakingStat(PlayerData player)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "INSERT INTO MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots,MVPCount) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots, @mvps);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@name", player.Name);
+                    cmd.Parameters.AddWithValue("@id", player.ID);
+                    cmd.Parameters.AddWithValue("@elo", player.CurrentElo);
+                    cmd.Parameters.AddWithValue("@gamesWon", player.TotalGamesWon);
+                    cmd.Parameters.AddWithValue("@gamesLost", player.TotalGamesLost);
+                    cmd.Parameters.AddWithValue("@roundsWon", player.TotalRoundsWon);
+                    cmd.Parameters.AddWithValue("@roundsLost", player.TotalRoundsLost);
+                    cmd.Parameters.AddWithValue("@kill", player.TotalKillCount);
+                    cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
+                    cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
+                    cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
+                    cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
+        public static async Task UpdatePlayerMatchmakingStat(PlayerData player)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "UPDATE SET MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots,MVPCount) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots, @mvps);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@name", player.Name);
+                    cmd.Parameters.AddWithValue("@id", player.ID);
+                    cmd.Parameters.AddWithValue("@elo", player.CurrentElo);
+                    cmd.Parameters.AddWithValue("@gamesWon", player.TotalGamesWon);
+                    cmd.Parameters.AddWithValue("@gamesLost", player.TotalGamesLost);
+                    cmd.Parameters.AddWithValue("@roundsWon", player.TotalRoundsWon);
+                    cmd.Parameters.AddWithValue("@roundsLost", player.TotalRoundsLost);
+                    cmd.Parameters.AddWithValue("@kill", player.TotalKillCount);
+                    cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
+                    cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
+                    cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
+                    cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
         public static async Task<List<string>> GetAllMessages()
         {
             HitException = null;

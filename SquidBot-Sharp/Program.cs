@@ -105,6 +105,7 @@ namespace SquidBot_Sharp
             _commands.RegisterCommands(typeof(TranslateCMD));
             _commands.RegisterCommands(typeof(ImpersonateCMD));
             _commands.RegisterCommands(typeof(ServerCMD));
+            _commands.RegisterCommands(typeof(PlayQueueCMD));
 
             var RCONinstance = new RconModule();
             RconInstance.RconModuleInstance = RCONinstance;
