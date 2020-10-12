@@ -1,9 +1,12 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
+using Google.Protobuf;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -272,6 +275,22 @@ namespace SquidBot_Sharp.Modules
             };
 
             string json = JsonConvert.SerializeObject(configData, Formatting.Indented);
+
+            //Grab FTP info from DB
+            var testserver = await DatabaseModule.GetTestServerInfo("sc1");
+
+            // Upload our match config
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(testserver.Address);
+            request.Method = WebRequestMethods.Ftp.UploadFile;
+            request.Credentials = new NetworkCredential(testserver.FtpUser, testserver.FtpPassword);
+            request.RenameTo = "match_config.json";
+            request.ContentLength = json.Length;
+            using (Stream request_stream = request.GetRequestStream())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(json);
+                await request_stream.WriteAsync(bytes, 0, json.Length);
+                request_stream.Close();
+            }
         }
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
