@@ -70,11 +70,11 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("test"), Description("Join CS:GO play session")]
-        public async Task Test(CommandContext ctx)
+        public async Task Test(CommandContext ctx, string test)
         {
-            string steamId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
+            string steamId = await DatabaseModule.GetMapIDFromName(test);
 
-            await ctx.RespondAsync("Your SteamID is " + steamId);
+            await ctx.RespondAsync("The map " + test + "'s ID is " + steamId);
         }
 
         [Command("register"), Description("Register SteamID for games")]

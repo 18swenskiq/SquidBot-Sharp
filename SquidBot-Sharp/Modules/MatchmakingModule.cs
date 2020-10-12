@@ -171,27 +171,7 @@ namespace SquidBot_Sharp.Modules
 
                 await Task.Delay(2000);
                 PreviousMessage = null;
-                List<string> mapNames = new List<string>()
-                {
-                    "Eternity",
-                    "Bell",
-                    "Pitstop",
-                    "Turnpike",
-                    "Station",
-                    "Rio",
-                    "The Spooky Manor",
-                    "Akihabara",
-                    "Terraza",
-                    "Malice",
-                    "Austria",
-                    "Chalice",
-                    "CleanUp",
-                    "Breach",
-                    "Boyard",
-                    "Gongji",
-                    "Beerhouse",
-                    "Chlore"
-                };
+                List<string> mapNames = await DatabaseModule.GetAllMapNames();
 
                 do
                 {
