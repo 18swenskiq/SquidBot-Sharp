@@ -84,6 +84,11 @@ namespace SquidBot_Sharp.Commands
             }
 
             bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
+
+            if(isFull)
+            {
+                MatchmakingModule.CanJoinQueue = false;
+            }
         }
 
         [Command("leavequeue"), Description("Leave CS:GO play session")]
@@ -112,7 +117,8 @@ namespace SquidBot_Sharp.Commands
                 277360174371438592,
                 66318815247466496,
                 337684398294040577,
-                107967155928088576
+                107967155928088576,
+                219353394115117056
             };
 
             bool isFull = false;
