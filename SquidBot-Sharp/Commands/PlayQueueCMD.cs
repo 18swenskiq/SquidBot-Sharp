@@ -108,6 +108,7 @@ namespace SquidBot_Sharp.Commands
                 timeOutTask = new Task(async () => { await MatchmakingModule.TimeOut(ctx); }, token);
                 timeOutTask.Start();
             }
+            await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[107967155928088576]);
         }
 
         [Command("test"), Description("Join CS:GO play session")]

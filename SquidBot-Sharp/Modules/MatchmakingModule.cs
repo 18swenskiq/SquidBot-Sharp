@@ -1,7 +1,11 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
+using FluentFTP;
 using Google.Protobuf;
 using Newtonsoft.Json;
+using Renci.SshNet;
+using SquidBot_Sharp.Commands;
+using SquidBot_Sharp.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -212,15 +216,32 @@ namespace SquidBot_Sharp.Modules
                     else if(mapSelectionResult != RANDOMIZE_RESULT)
                     {
                         //Start map
-                        await StartMap(mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
+                        // Get map ID
+                        var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
+                        await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
+                        break; // Why did you not add a break here 7ark PLEASE
+
+                        // Theoretically we replace this with like a "postgame"
                     }
                 } while (true);
 
             }
         }
 
-        private static async Task StartMap(string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
+        private static async Task StartMap(CommandContext ctx, string mapID, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {
+
+            var waitingembed = new DiscordEmbedBuilder
+            {
+                Color = new DiscordColor(0x3277a8),
+                Title = $":gear: Please wait while the server is setup...",
+                Timestamp = DateTime.UtcNow,            
+            };
+
+            var embedmessage = await ctx.RespondAsync(embed: waitingembed);
+
+            
+
             MatchConfigData configData = new MatchConfigData()
             {
                 matchid = "example_match",
@@ -278,19 +299,65 @@ namespace SquidBot_Sharp.Modules
 
             //Grab FTP info from DB
             var testserver = await DatabaseModule.GetTestServerInfo("sc1");
-
-            // Upload our match config
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(testserver.Address);
-            request.Method = WebRequestMethods.Ftp.UploadFile;
-            request.Credentials = new NetworkCredential(testserver.FtpUser, testserver.FtpPassword);
-            request.RenameTo = "match_config.json";
-            request.ContentLength = json.Length;
-            using (Stream request_stream = request.GetRequestStream())
+            var connectaddressuri = new Uri($"ftp://" + GeneralUtil.GetIpEndPointFromString(testserver.Address));
+            var connectaddress = connectaddressuri.GetComponents(UriComponents.AbsoluteUri & ~UriComponents.Port, UriFormat.UriEscaped);
+            string path = "/match_configs/testmatch.json";
+            try
             {
-                byte[] bytes = Encoding.UTF8.GetBytes(json);
-                await request_stream.WriteAsync(bytes, 0, json.Length);
-                request_stream.Close();
+                var request = (FtpWebRequest)WebRequest.Create(connectaddress + path);
+                request.Method = WebRequestMethods.Ftp.MakeDirectory;
+                request.Method = WebRequestMethods.Ftp.UploadFile;
+                request.Credentials = new NetworkCredential(testserver.FtpUser, testserver.FtpPassword);
+                using (var req = await request.GetRequestStreamAsync())
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(json);
+                    //req.SetLength(0);
+                    await req.WriteAsync(bytes, 0, bytes.Length);
+                }
             }
+            catch (Exception ex)
+            {
+                // Oh god this is gonna fuck up the whole program if it gets here please don't happen oh god
+                throw ex;
+            }
+
+            // If we've made it here, the match file should be written onto the server.
+            // Maybe add in some redundancy so we know its actually there?
+            var localrcon = RconInstance.RconModuleInstance;
+
+            // I don't know why these have to get sent twice but it seems to only work this way
+
+            await localrcon.RconCommand("sc1", "get5_endmatch");
+            await Task.Delay(500);
+            await localrcon.RconCommand("sc1", "get5_endmatch");
+            await Task.Delay(500);
+            await localrcon.RconCommand("sc1", $"get5_loadmatch \"{path}\"");
+            await Task.Delay(500);
+            await localrcon.RconCommand("sc1", $"get5_loadmatch \"{path}\"");
+            await Task.Delay(500);
+            await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
+            await Task.Delay(500);
+            await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
+            await Task.Delay(500);
+
+
+            var iteminfo = await SteamWorkshopModule.GetPublishedFileDetails(new List<string> { mapID });
+            var matchembed = new DiscordEmbedBuilder
+            {
+                Color = new DiscordColor(0x3277a8),
+                Title = $"Server Ready!",
+                Description = $"Connect Information: `connect sc1.quintonswenski.com`",
+                Timestamp = DateTime.UtcNow,
+                ImageUrl = iteminfo[0].PreviewURL,
+            };
+            matchembed.AddField($"Team {team1Name}", $"{team1[0].Name}\n{team1[1].Name}", true);
+            matchembed.AddField($"Team {team2Name}", $"{team2[0].Name}\n{team2[1].Name}", true);
+            matchembed.AddField(iteminfo[0].Title, "---------------------------------", false);
+
+            //matchembed.WithFooter(iteminfo[0].Title);
+
+            await embedmessage.ModifyAsync(string.Empty, (DiscordEmbed)matchembed);
+            
         }
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
@@ -454,7 +521,8 @@ namespace SquidBot_Sharp.Modules
                     {
                         for (int j = 0; j < reacteds.Count; j++)
                         {
-                            if(reacteds[j].Id.ToString() == captain.ID)
+                            // COMMENTING THIS OUT MAKES THE BOT LET ANYONE VETO
+                            //if(reacteds[j].Id.ToString() == captain.ID)
                             {
                                 waiting = false;
                                 chosen = i;
@@ -470,6 +538,7 @@ namespace SquidBot_Sharp.Modules
 
                 if (mapNames.Count == 1)
                 {
+                    await PreviousMessage.DeleteAsync();
                     return mapNames[0];
                 }
                 else
