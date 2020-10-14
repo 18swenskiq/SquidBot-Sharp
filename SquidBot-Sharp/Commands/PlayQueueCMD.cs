@@ -67,6 +67,7 @@ namespace SquidBot_Sharp.Commands
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[277360174371438592]);
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[66318815247466496]);
             await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[337684398294040577]);
+            await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[107967155928088576]);
         }
 
         [Command("test"), Description("Join CS:GO play session")]

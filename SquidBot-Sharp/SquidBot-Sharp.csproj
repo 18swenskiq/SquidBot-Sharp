@@ -13,6 +13,7 @@
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00679" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00679" />
     <PackageReference Include="FaceitLib" Version="1.0.7" />
+    <PackageReference Include="FluentFTP" Version="32.4.6" />
     <PackageReference Include="Markov" Version="2.0.1-ci0001" />
     <PackageReference Include="MySql.Data" Version="8.0.20" />
     <PackageReference Include="MySqlBackup.NET" Version="2.3.1" />

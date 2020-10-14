@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using SquidBot_Sharp.Modules;
 
 namespace SquidBot_Sharp.Commands
 {
@@ -119,8 +120,7 @@ namespace SquidBot_Sharp.Commands
                 }
 
 
-                //Console.WriteLine(searchResultIDList);
-                var listresults = await GetPublishedFileDetails(ctx, searchResultIDList);
+                var listresults = await SteamWorkshopModule.GetPublishedFileDetails(searchResultIDList);
 
                 var embed = new DiscordEmbedBuilder
                 {
@@ -137,99 +137,5 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync(embed: embed);
             }
         }
-
-
-        private async Task<List<WorkshopReturnInformation>> GetPublishedFileDetails(CommandContext ctx, List<string> itemids)
-        {
-            var kvlist = new List<KeyValue>();
-            using (dynamic SteamPublishedFileDetails = WebAPI.GetAsyncInterface("ISteamRemoteStorage"))
-            {
-                var basedict = new Dictionary<string, object>
-                {
-                    ["itemcount"] = 1,
-                    ["method"] = HttpMethod.Post,
-                    ["publishedfileids[0]"] = ""
-                };
-                foreach(var itemid in itemids)
-                {
-                    basedict["publishedfileids[0]"] = itemid;
-                    try
-                    {
-                        KeyValue kvResults = await SteamPublishedFileDetails.GetPublishedFileDetails(basedict);
-                        kvlist.Add(kvResults);
-                    }
-                    catch (Exception ex)
-                    {
-                        await ctx.RespondAsync($"Could not get the details of a published file due to: {ex.Message}. You might want to contact Squidski");
-                        return null;
-                    }
-                }
-            }
-            // Parse out the information we want
-            var returninfo = new List<WorkshopReturnInformation>();
-            foreach(var kvitem in kvlist)
-            {
-                foreach(var child in kvitem.Children)
-                {
-                    foreach(var child2 in child.Children)
-                    {
-                        if(child2.Name == "0")
-                        {
-                            var thisreturninfo = new WorkshopReturnInformation();
-
-                            foreach(var child3 in child2.Children)
-                            {
-                                switch(child3.Name)
-                                {
-                                    case "publishedfileid":
-                                        thisreturninfo.PublishedFileID = child3.Value;
-                                        break;
-                                    case "creator":
-                                        thisreturninfo.CreatorID = child3.Value;
-                                        break;
-                                    case "file_url":
-                                        thisreturninfo.FileURL = child3.Value;
-                                        break;
-                                    case "preview_url":
-                                        thisreturninfo.PreviewURL = child3.Value;
-                                        break;
-                                    case "title":
-                                        thisreturninfo.Title = child3.Value;
-                                        break;
-                                    case "description":
-                                        thisreturninfo.Description = child3.Value;
-                                        break;
-                                    case "time_created":
-                                        thisreturninfo.TimeCreated = Int64.Parse(child3.Value);
-                                        break;
-                                    case "time_updated":
-                                        thisreturninfo.TimeCreated = Int64.Parse(child3.Value);
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                            returninfo.Add(thisreturninfo);
-                        }
-                    }
-                }
-            }
-
-
-            return returninfo;
-
-        }
-    }
-
-    class WorkshopReturnInformation
-    {
-        public string Description { get; set; }
-        public string Title { get; set; }
-        public string FileURL { get; set; }
-        public string PreviewURL { get; set; }
-        public string PublishedFileID { get; set; }
-        public string CreatorID { get; set; }
-        public Int64 TimeCreated { get; set; }
-        public Int64 TimeUpdated { get; set; }
     }
 }
