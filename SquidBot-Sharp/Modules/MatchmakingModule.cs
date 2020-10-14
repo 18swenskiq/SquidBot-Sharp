@@ -20,32 +20,50 @@ namespace SquidBot_Sharp.Modules
         private const string ABORT_RESULT = "ABORT";
         private const int MAP_COUNT = 7;
         private const int NEEDED_FOR_RANDOMIZE = 3;
+        private const int SECONDS_UNTIL_TIMEOUT = 10;
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static DiscordMessage PreviousMessage = null;
-        public static bool MatchSelectionOngoing = false;
+        public static bool CanJoinQueue = true;
         public static bool MatchFull = false;
         public static bool CaptainPick = false;
         public static bool SelectingMap = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
 
-        public static void Reset()
+
+
+        public static async Task TimeOut(CommandContext ctx)
+        {
+            await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
+
+            await Reset();
+            await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
+        }
+
+        public static async Task Reset()
         {
             SelectingMap = false;
             MatchFull = false;
-            MatchSelectionOngoing = false;
+            CanJoinQueue = true;
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
             gamePlayerToDiscordPlayer.Clear();
+
+
+            if (PreviousMessage != null)
+            {
+                await PreviousMessage.DeleteAsync();
+            }
+
             PreviousMessage = null;
         }
 
-        public static async Task JoinQueue(CommandContext ctx, DiscordMember member)
+        public static async Task<bool> JoinQueue(CommandContext ctx, DiscordMember member)
         {
             if(MatchFull)
             {
-                return;
+                return true;
             }
 
             if (!PlayersInQueue.Contains(member))
@@ -81,6 +99,8 @@ namespace SquidBot_Sharp.Modules
             gamePlayerToDiscordPlayer[player] = member;
 
             await UpdatePlayList(ctx);
+
+            return PlayersInQueue.Count >= 4;
         }
 
         public static async Task UpdatePlayList(CommandContext ctx)
@@ -382,7 +402,15 @@ namespace SquidBot_Sharp.Modules
             await taskMsg;
             for (int i = 0; i < mapNames.Count; i++)
             {
+                if(PreviousMessage == null)
+                {
+                    return ABORT_RESULT;
+                }
                 await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
+            }
+            if (PreviousMessage == null)
+            {
+                return ABORT_RESULT;
             }
             await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
 
@@ -395,6 +423,10 @@ namespace SquidBot_Sharp.Modules
                     break;
                 }
 
+                if (PreviousMessage == null)
+                {
+                    return ABORT_RESULT;
+                }
                 var randomizeReacts = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
                 if(randomizeReacts.Count >= NEEDED_FOR_RANDOMIZE + 1)
                 {
@@ -413,6 +445,10 @@ namespace SquidBot_Sharp.Modules
                 }
                 for (int i = 0; i < mapNames.Count; i++)
                 {
+                    if (PreviousMessage == null)
+                    {
+                        return ABORT_RESULT;
+                    }
                     var reacteds = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
                     if (reacteds.Count > 1)
                     {

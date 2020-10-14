@@ -10,32 +10,42 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
+        private Task timeOutTask;
+        private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         public async Task Play(CommandContext ctx, string extra = "")
         {
-            if (MatchmakingModule.MatchSelectionOngoing)
+            if (!MatchmakingModule.CanJoinQueue)
             {
                 return;
             }
 
-            MatchmakingModule.MatchSelectionOngoing = true;
+            MatchmakingModule.CanJoinQueue = true;
             MatchmakingModule.PlayersInQueue.Clear();
 
             MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
 
             await MatchmakingModule.JoinQueue(ctx, ctx.Member);
+
+            cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken token = cancellationTokenSource.Token;
+            timeOutTask = new Task(async () => { await MatchmakingModule.TimeOut(ctx); }, token);
+            timeOutTask.Start();
         }
 
         [Command("stopqueue"), Description("Ends CS:GO play queue")]
         public async Task StopQueue(CommandContext ctx)
         {
-            MatchmakingModule.Reset();
+            cancellationTokenSource.Cancel(true);
+            await MatchmakingModule.Reset();
 
             if(MatchmakingModule.PreviousMessage != null)
             {
@@ -47,26 +57,57 @@ namespace SquidBot_Sharp.Commands
         [Command("queue"), Description("Join CS:GO play session")]
         public async Task Queue(CommandContext ctx)
         {
-            if(!MatchmakingModule.MatchSelectionOngoing)
+            if(!MatchmakingModule.CanJoinQueue)
             {
+                await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
             }
 
-            await MatchmakingModule.JoinQueue(ctx, ctx.Member);
+            cancellationTokenSource.Cancel();
+
+            bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
+
+            if(!isFull)
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                CancellationToken token = cancellationTokenSource.Token;
+                timeOutTask = new Task(async () => { await MatchmakingModule.TimeOut(ctx); }, token);
+                timeOutTask.Start();
+            }
         }
 
         [Command("queuedebug"), Description("Join CS:GO play session")]
-        public async Task QueueDebug(CommandContext ctx)
+        public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
-            if (!MatchmakingModule.MatchSelectionOngoing)
+            if (!MatchmakingModule.CanJoinQueue)
             {
+                await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
             }
-            
 
-            await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[277360174371438592]);
-            await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[66318815247466496]);
-            await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[337684398294040577]);
+            cancellationTokenSource.Cancel();
+
+            ulong[] ids =
+            {
+                277360174371438592,
+                66318815247466496,
+                337684398294040577,
+                107967155928088576
+            };
+
+            bool isFull = false;
+            for (int i = 0; i < amount; i++)
+            {
+                isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[ids[i]]);
+            }
+
+            if (!isFull)
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                CancellationToken token = cancellationTokenSource.Token;
+                timeOutTask = new Task(async () => { await MatchmakingModule.TimeOut(ctx); }, token);
+                timeOutTask.Start();
+            }
         }
 
         [Command("test"), Description("Join CS:GO play session")]
