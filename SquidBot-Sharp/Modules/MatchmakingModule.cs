@@ -24,14 +24,17 @@ namespace SquidBot_Sharp.Modules
         private const string ABORT_RESULT = "ABORT";
         private const int MAP_COUNT = 7;
         private const int NEEDED_FOR_RANDOMIZE = 3;
-        private const int SECONDS_UNTIL_TIMEOUT = 10;
+        private const int SECONDS_IN_MINUTE = 60;
+        private const int SECONDS_UNTIL_TIMEOUT = SECONDS_IN_MINUTE * 5;
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static DiscordMessage PreviousMessage = null;
         public static bool CanJoinQueue = true;
-        public static bool MatchFull = false;
+        public static bool Queueing = false;
+        public static bool MatchPlaying = false;
         public static bool CaptainPick = false;
-        public static bool SelectingMap = false;
+        private static bool SelectingMap = false;
+        public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
 
@@ -41,15 +44,20 @@ namespace SquidBot_Sharp.Modules
         {
             await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
 
-            await Reset();
-            await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
+            if(!MatchPlaying && !WasReset)
+            {
+                await Reset();
+                await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
+            }
         }
 
         public static async Task Reset()
         {
+            WasReset = true;
             SelectingMap = false;
-            MatchFull = false;
+            MatchPlaying = false;
             CanJoinQueue = true;
+            Queueing = false;
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
             gamePlayerToDiscordPlayer.Clear();
@@ -63,9 +71,16 @@ namespace SquidBot_Sharp.Modules
             PreviousMessage = null;
         }
 
+        public static async Task<bool> DoesPlayerHaveSteamIDRegistered(CommandContext ctx, DiscordMember member)
+        {
+            string id = await DatabaseModule.GetPlayerSteamIDFromDiscordID(member.Id.ToString());
+
+            return id != string.Empty;
+        }
+
         public static async Task<bool> JoinQueue(CommandContext ctx, DiscordMember member)
         {
-            if(MatchFull)
+            if(MatchPlaying)
             {
                 return true;
             }
@@ -106,6 +121,40 @@ namespace SquidBot_Sharp.Modules
 
             return PlayersInQueue.Count >= 4;
         }
+        public static async Task LeaveQueue(CommandContext ctx, DiscordMember member)
+        {
+            if (MatchPlaying)
+            {
+                return;
+            }
+            
+            if(PlayersInQueue.Contains(member))
+            {
+                var player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
+
+                PlayersInQueue.Remove(member);
+                discordPlayerToGamePlayer.Remove(member);
+                gamePlayerToDiscordPlayer.Remove(player);
+
+                await UpdatePlayList(ctx);
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        public static bool IsPlayerHost(DiscordMember member)
+        {
+            if (PlayersInQueue.Contains(member))
+            {
+                return PlayersInQueue[0] == member;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         public static async Task UpdatePlayList(CommandContext ctx)
         {
@@ -133,7 +182,7 @@ namespace SquidBot_Sharp.Modules
 
             if (readyToStart)
             {
-                MatchFull = true;
+                MatchPlaying = true;
                 List<PlayerData> players = new List<PlayerData>();
                 for (int i = 0; i < PlayersInQueue.Count; i++)
                 {
@@ -168,7 +217,12 @@ namespace SquidBot_Sharp.Modules
             {
                 for (int i = 0; i < PlayersInQueue.Count; i++)
                 {
-                    embed.AddField(PlayersInQueue[i].DisplayName, "Elo: " + discordPlayerToGamePlayer[PlayersInQueue[i]].CurrentElo);
+                    string nameExtra = "";
+                    if(i == 0)
+                    {
+                        nameExtra = " (Host)";
+                    }
+                    embed.AddField(PlayersInQueue[i].DisplayName + nameExtra, "Elo: " + discordPlayerToGamePlayer[PlayersInQueue[i]].CurrentElo);
                 }
             }
 
