@@ -79,7 +79,7 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
-            if (!MatchmakingModule.CanJoinQueue)
+            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
             {
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
@@ -147,20 +147,7 @@ namespace SquidBot_Sharp.Commands
         [Command("test"), Description("Join CS:GO play session")]
         public async Task Test(CommandContext ctx)
         {
-            await MatchmakingModule.MatchPostGame(ctx, 6, "Sunburn", 
-            new List<PlayerData>()
-            {
-                await DatabaseModule.GetPlayerMatchmakingStats("66318815247466496"),
-                await DatabaseModule.GetPlayerMatchmakingStats("366254917830180867"),
-            },
-            new List<PlayerData>()
-            {
-                await DatabaseModule.GetPlayerMatchmakingStats("107967155928088576"),
-                await DatabaseModule.GetPlayerMatchmakingStats("202187220629585920"),
-            },
-            "7abp",
-            "Too Big fKnife"
-            );
+
         }
 
         [Command("register"), Description("Register SteamID for games")]
