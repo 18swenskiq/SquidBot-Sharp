@@ -483,11 +483,6 @@ namespace SquidBot_Sharp.Modules
                 Timestamp = DateTime.UtcNow,
             };
 
-            if (PreviousMessage != null)
-            {
-                await PreviousMessage.DeleteAsync();
-            }
-
             Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
             PreviousMessage = taskMsg.Result;
 
