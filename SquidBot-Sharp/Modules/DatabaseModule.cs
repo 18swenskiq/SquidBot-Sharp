@@ -356,7 +356,7 @@ namespace SquidBot_Sharp.Modules
                     await con.CloseAsync();
                 }
             }
-            return result == "";
+            return result != "";
         }
 
         public static async Task<PlayerGameData> GetPlayerStatsFromMatch(string discordId, int matchId, string teamName)

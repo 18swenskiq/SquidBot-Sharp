@@ -338,7 +338,7 @@ namespace SquidBot_Sharp.Modules
 
             MatchConfigData configData = new MatchConfigData()
             {
-                matchid = $"{lastmatchid}",
+                matchid = $"{lastmatchid + 1}",
                 num_maps = 1,
                 players_per_team = 2,
                 min_players_to_ready = 2,
@@ -395,7 +395,7 @@ namespace SquidBot_Sharp.Modules
             var testserver = await DatabaseModule.GetTestServerInfo("sc1");
             var connectaddressuri = new Uri($"ftp://" + GeneralUtil.GetIpEndPointFromString(testserver.Address));
             var connectaddress = connectaddressuri.GetComponents(UriComponents.AbsoluteUri & ~UriComponents.Port, UriFormat.UriEscaped);
-            string path = $"/match_configs/match_{lastmatchid}.json";
+            string path = $"/match_configs/match_{lastmatchid + 1}.json";
             try
             {
                 var request = (FtpWebRequest)WebRequest.Create(connectaddress + path);
@@ -457,7 +457,7 @@ namespace SquidBot_Sharp.Modules
 
             await embedmessage.ModifyAsync(string.Empty, (DiscordEmbed)matchembed);
 
-            await MatchPostGame(ctx, lastmatchid, mapName, team1, team2, team1Name, team2Name);
+            await MatchPostGame(ctx, lastmatchid + 1, mapName, team1, team2, team1Name, team2Name);
         }
 
         public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
@@ -465,13 +465,16 @@ namespace SquidBot_Sharp.Modules
             while(true)
             {
                 await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
-            
-                if (await DatabaseModule.HasMatchEnded(matchId))
+                bool currentstatus;
+                currentstatus = await DatabaseModule.HasMatchEnded(matchId);
+                Console.WriteLine($"CHECK END LOOP STATUS: {currentstatus}");
+                if (currentstatus)
                 {
                     break;
                 }
             }
 
+            Console.WriteLine("Got through RCON command");
 
             var embed = new DiscordEmbedBuilder
             {
@@ -587,6 +590,16 @@ namespace SquidBot_Sharp.Modules
             PreviousMessage = taskMsg.Result;
 
             await taskMsg;
+
+            var localrcon = RconInstance.RconModuleInstance;
+            try
+            {
+                await localrcon.RconCommand("sc1", "exit");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
