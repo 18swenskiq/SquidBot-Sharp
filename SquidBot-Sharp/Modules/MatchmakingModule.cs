@@ -552,8 +552,6 @@ namespace SquidBot_Sharp.Modules
             await DatabaseModule.DeletePlayerStats(t2p1Final.ID);
             await DatabaseModule.DeletePlayerStats(t2p2Final.ID);
 
-            await Task.Delay(500);
-
             await DatabaseModule.AddPlayerMatchmakingStat(t2p1Final);
             await DatabaseModule.AddPlayerMatchmakingStat(t1p2Final);
             await DatabaseModule.AddPlayerMatchmakingStat(t1p1Final);
