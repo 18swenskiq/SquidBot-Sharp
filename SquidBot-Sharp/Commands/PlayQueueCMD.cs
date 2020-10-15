@@ -106,6 +106,19 @@ namespace SquidBot_Sharp.Commands
             await MatchmakingModule.LeaveQueue(ctx, ctx.Member);
         }
 
+        [Command("elo"), Description("Check player elo")]
+        public async Task Elo(CommandContext ctx, string discordId = "")
+        {
+            if(discordId == string.Empty)
+            {
+                discordId = ctx.Member.Id.ToString();
+            }
+
+            PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(discordId);
+
+            await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + player.CurrentElo);
+        }
+
         [Command("queuedebug"), Description("Join CS:GO play session")]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
@@ -131,16 +144,7 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
-        [Command("test"), Description("Join CS:GO play session")]
-        public async Task Test(CommandContext ctx, string test)
-        {
-            string steamId = await DatabaseModule.GetMapIDFromName(test);
-
-            await ctx.RespondAsync("The map " + test + "'s ID is " + steamId);
-        }
-
         [Command("register"), Description("Register SteamID for games")]
-        [Aliases("r")]
         public async Task Register(CommandContext ctx, string steamId)
         {
             string existingId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
