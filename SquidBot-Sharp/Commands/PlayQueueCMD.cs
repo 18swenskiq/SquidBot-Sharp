@@ -19,6 +19,7 @@ namespace SquidBot_Sharp.Commands
     {
 
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
+        [Aliases("sq")]
         public async Task Play(CommandContext ctx, string extra = "")
         {
             if(!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
@@ -69,11 +70,12 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("queue"), Description("Join CS:GO play session")]
+        [Aliases("q")]
         public async Task Queue(CommandContext ctx)
         {
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register id` to add your Steam ID.");
+                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register` to add your Steam ID.");
                 return;
             }
 
@@ -92,6 +94,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("leavequeue"), Description("Leave CS:GO play session")]
+        [Aliases("lq")]
         public async Task LeaveQueue(CommandContext ctx)
         {
             if (!MatchmakingModule.CanJoinQueue)
@@ -137,6 +140,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("register"), Description("Register SteamID for games")]
+        [Aliases("r")]
         public async Task Register(CommandContext ctx, string steamId)
         {
             string existingId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
@@ -149,6 +153,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("leaderboard"), Description("Display leaderboard")]
+        [Aliases("l")]
         public async Task Leaderboard(CommandContext ctx, string parameters = "")
         {
             List<PlayerData> allPlayers = new List<PlayerData>();
