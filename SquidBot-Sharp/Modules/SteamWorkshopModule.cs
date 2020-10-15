@@ -75,6 +75,9 @@ namespace SquidBot_Sharp.Modules
                                     case "time_updated":
                                         thisreturninfo.TimeCreated = Int64.Parse(child3.Value);
                                         break;
+                                    case "filename":
+                                        thisreturninfo.Filename = child3.Value;
+                                        break;
                                     default:
                                         break;
                                 }

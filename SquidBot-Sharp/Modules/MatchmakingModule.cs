@@ -294,11 +294,15 @@ namespace SquidBot_Sharp.Modules
 
             var embedmessage = await ctx.RespondAsync(embed: waitingembed);
 
-            
+
+            var iteminfo = await SteamWorkshopModule.GetPublishedFileDetails(new List<string> { mapID });
+            var bspname = iteminfo[0].Filename.Substring(iteminfo[0].Filename.LastIndexOf('/') + 1);
+
+            var lastmatchid = await DatabaseModule.GetLastMatchID();
 
             MatchConfigData configData = new MatchConfigData()
             {
-                matchid = "example_match",
+                matchid = $"{lastmatchid}",
                 num_maps = 1,
                 players_per_team = 2,
                 min_players_to_ready = 2,
@@ -315,7 +319,7 @@ namespace SquidBot_Sharp.Modules
                 },
                 maplist = new List<string>()
                 {
-                    mapName
+                    @$"workshop\{mapID}\{bspname}"
                 },
                 favored_percentage_team1 = 65,
                 favored_percentage_text = "HLTV Bets",
@@ -323,8 +327,8 @@ namespace SquidBot_Sharp.Modules
                 {
                     name = team1Name,
                     tag = team1Name,
-                    flag = "FR",
-                    logo = "nv",
+                    //flag = "FR",
+                    //logo = "nv",
                     players = new List<string>()
                     {
                         await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID),
@@ -335,8 +339,8 @@ namespace SquidBot_Sharp.Modules
                 {
                     name = team2Name,
                     tag = team2Name,
-                    flag = "SE",
-                    logo = "fntc",
+                    //flag = "SE",
+                    //logo = "fntc",
                     players = new List<string>()
                     {
                         await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID),
@@ -355,7 +359,7 @@ namespace SquidBot_Sharp.Modules
             var testserver = await DatabaseModule.GetTestServerInfo("sc1");
             var connectaddressuri = new Uri($"ftp://" + GeneralUtil.GetIpEndPointFromString(testserver.Address));
             var connectaddress = connectaddressuri.GetComponents(UriComponents.AbsoluteUri & ~UriComponents.Port, UriFormat.UriEscaped);
-            string path = "/match_configs/testmatch.json";
+            string path = $"/match_configs/match_{lastmatchid}.json";
             try
             {
                 var request = (FtpWebRequest)WebRequest.Create(connectaddress + path);
@@ -365,7 +369,6 @@ namespace SquidBot_Sharp.Modules
                 using (var req = await request.GetRequestStreamAsync())
                 {
                     byte[] bytes = Encoding.UTF8.GetBytes(json);
-                    //req.SetLength(0);
                     await req.WriteAsync(bytes, 0, bytes.Length);
                 }
             }
@@ -381,6 +384,10 @@ namespace SquidBot_Sharp.Modules
 
             // I don't know why these have to get sent twice but it seems to only work this way
 
+            await localrcon.WakeRconServer("sc1");
+            await Task.Delay(2500);
+            await localrcon.WakeRconServer("sc1");
+            await Task.Delay(2500);
             await localrcon.RconCommand("sc1", "get5_endmatch");
             await Task.Delay(500);
             await localrcon.RconCommand("sc1", "get5_endmatch");
@@ -393,9 +400,11 @@ namespace SquidBot_Sharp.Modules
             await Task.Delay(500);
             await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
             await Task.Delay(500);
+            await localrcon.RconCommand("sc1", $"get5_loadmatch \"{path}\"");
+            await Task.Delay(500);
 
 
-            var iteminfo = await SteamWorkshopModule.GetPublishedFileDetails(new List<string> { mapID });
+
             var matchembed = new DiscordEmbedBuilder
             {
                 Color = new DiscordColor(0x3277a8),
@@ -506,10 +515,6 @@ namespace SquidBot_Sharp.Modules
             {
                 embed.AddField(mapNames[i], ":" + numbersWritten[i + 1] + ":");
             }
-            //for (int i = 0; i < mapNames.Count; i += 2)
-            //{
-            //    embed.AddField(":" + numbersWritten[i + 1] + ":" + mapNames[i] + "\t\t\t" + ":" + numbersWritten[i + 2] + ":" + mapNames[i + 1], "Vote to Remove");
-            //}
             embed.AddField("Current Captain: " + captain.Name, "Select the map to remove it from the list of options");
 
             if (PreviousMessage != null)
@@ -576,7 +581,7 @@ namespace SquidBot_Sharp.Modules
                         for (int j = 0; j < reacteds.Count; j++)
                         {
                             // COMMENTING THIS OUT MAKES THE BOT LET ANYONE VETO
-                            //if(reacteds[j].Id.ToString() == captain.ID)
+                            if(reacteds[j].Id.ToString() == captain.ID)
                             {
                                 waiting = false;
                                 chosen = i;

@@ -8,6 +8,7 @@ using MySql.Data.MySqlClient;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
 using SteamKit2.Internal;
+using SteamKit2.Unified.Internal;
 
 namespace SquidBot_Sharp.Modules
 {
@@ -609,6 +610,32 @@ namespace SquidBot_Sharp.Modules
                 {
                     Console.WriteLine($"Something happened getting test server: {e}.");
                     return foundServers;
+                }
+            }
+        }
+
+        public static async Task<int> GetLastMatchID()
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT MAX(matchid) FROM get5_stats_matches;";
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    DataTable temp = new DataTable();
+                    var adapter = new MySqlDataAdapter(cmd);
+                    await adapter.FillAsync(temp);
+                    object lastmatchidobject = temp.Rows[0].ItemArray[0];
+                    int lastmatchid = (int)(uint)lastmatchidobject;
+                    await con.CloseAsync();
+                    return lastmatchid;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Something happened getting last match id: {e.Message}.");
+                    return -1;
                 }
             }
         }
