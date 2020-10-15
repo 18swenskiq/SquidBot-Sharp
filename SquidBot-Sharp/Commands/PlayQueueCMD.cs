@@ -24,7 +24,7 @@ namespace SquidBot_Sharp.Commands
         {
             if(!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register id` to add your Steam ID.");
+                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register id` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -144,9 +144,42 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
+        [Command("test"), Description("Join CS:GO play session")]
+        public async Task Test(CommandContext ctx)
+        {
+            await MatchmakingModule.MatchPostGame(ctx, 6, "Sunburn", 
+            new List<PlayerData>()
+            {
+                await DatabaseModule.GetPlayerMatchmakingStats("66318815247466496"),
+                await DatabaseModule.GetPlayerMatchmakingStats("366254917830180867"),
+            },
+            new List<PlayerData>()
+            {
+                await DatabaseModule.GetPlayerMatchmakingStats("107967155928088576"),
+                await DatabaseModule.GetPlayerMatchmakingStats("202187220629585920"),
+            },
+            "7abp",
+            "Too Big fKnife"
+            );
+        }
+
         [Command("register"), Description("Register SteamID for games")]
         public async Task Register(CommandContext ctx, string steamId)
         {
+            bool failedToConvert = false;
+            try
+            {
+                System.Convert.ToInt64(steamId);
+            }
+            catch(Exception e)
+            {
+                failedToConvert = true;
+            }
+            if(steamId.Contains("STEAM") || steamId.Contains("[U") || failedToConvert)
+            {
+                await ctx.RespondAsync("Steam ID needs to be in the SteamID64 format! Example: >register 76561198065593279 (Find your Steam ID here: https://steamidfinder.com/)");
+                return;
+            }
             string existingId = await DatabaseModule.GetPlayerSteamIDFromDiscordID(ctx.Member.Id.ToString());
             if(existingId != string.Empty)
             {
@@ -187,10 +220,10 @@ namespace SquidBot_Sharp.Commands
             {
                 allPlayers.Sort((x, y) => { return x.TotalHeadshotCount.CompareTo(y.TotalHeadshotCount); });
             }
-            else if (parameters.Contains("mvp"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalMVPCount.CompareTo(y.TotalMVPCount); });
-            }
+            //else if (parameters.Contains("mvp"))
+            //{
+            //    allPlayers.Sort((x, y) => { return x.TotalMVPCount.CompareTo(y.TotalMVPCount); });
+            //}
             else if (parameters.Contains("round"))
             {
                 allPlayers.Sort((x, y) => { return x.TotalRoundsWon.CompareTo(y.TotalRoundsWon); });
@@ -234,10 +267,10 @@ namespace SquidBot_Sharp.Commands
                 {
                     valueDisplay = "Headshots: " + allPlayers[i].TotalHeadshotCount.ToString();
                 }
-                else if (parameters.Contains("mvp"))
-                {
-                    valueDisplay = "MVPs: " + allPlayers[i].TotalMVPCount.ToString();
-                }
+                //else if (parameters.Contains("mvp"))
+                //{
+                //    valueDisplay = "MVPs: " + allPlayers[i].TotalMVPCount.ToString();
+                //}
                 else if (parameters.Contains("round"))
                 {
                     valueDisplay = "Rounds Won: " + allPlayers[i].TotalRoundsWon.ToString();
@@ -274,7 +307,7 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">stopqueue", "Stops a game queue if you are the host of the queue.");
                 embed.AddField(">leavequeue", "Leaves an existing queue if you're part of it. Leaving as a host assigns a new host.");
                 embed.AddField(">queue", "Joins an ongoing queue if enough slots are left.");
-                embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game.");
+                embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
 
                 await ctx.RespondAsync(embed: embed);

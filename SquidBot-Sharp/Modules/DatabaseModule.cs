@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
+using SteamKit2;
 using SteamKit2.Internal;
 using SteamKit2.Unified.Internal;
 
@@ -133,7 +134,7 @@ namespace SquidBot_Sharp.Modules
                     playerData.TotalAssistCount = System.Convert.ToInt32(resultList[8]);
                     playerData.TotalDeathCount = System.Convert.ToInt32(resultList[9]);
                     playerData.TotalHeadshotCount = System.Convert.ToInt32(resultList[10]);
-                    playerData.TotalMVPCount = System.Convert.ToInt32(resultList[11]);
+                    //playerData.TotalMVPCount = System.Convert.ToInt32(resultList[11]);
 
                     await rdr.CloseAsync();
                 }
@@ -323,6 +324,162 @@ namespace SquidBot_Sharp.Modules
             return;
         }
 
+        public static async Task<bool> HasMatchEnded(int id)
+        {
+            HitException = null;
+            string result = string.Empty;
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result == "";
+        }
+
+        public static async Task<PlayerGameData> GetPlayerStatsFromMatch(string discordId, int matchId, string teamName)
+        {
+            string steamId = await GetPlayerSteamIDFromDiscordID(discordId);
+            
+            HitException = null;
+            PlayerData playerData = new PlayerData();
+            List<string> resultList = new List<string>();
+
+            PlayerGameData gameData = new PlayerGameData();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE steamid64='{steamId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        resultList.Add(rdr[0].ToString());
+                        resultList.Add(rdr[1].ToString());
+                        resultList.Add(rdr[2].ToString());
+                        resultList.Add(rdr[3].ToString());
+                        resultList.Add(rdr[4].ToString());
+                    }
+
+                    gameData.TeamNumber = resultList[0] == "team1" ? 1 : 2;
+                    gameData.KillCount = System.Convert.ToInt32(resultList[1]);
+                    gameData.DeathCount = System.Convert.ToInt32(resultList[2]);
+                    gameData.AssistCount = System.Convert.ToInt32(resultList[3]);
+                    gameData.Headshots = System.Convert.ToInt32(resultList[4]);
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+
+            resultList.Clear();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        resultList.Add(rdr[0].ToString());
+                        resultList.Add(rdr[1].ToString());
+                        resultList.Add(rdr[2].ToString());
+                    }
+
+                    gameData.WonGame = gameData.TeamNumber == 1 && resultList[0] == "team1";
+                    int team1Score = System.Convert.ToInt32(resultList[1]);
+                    int team2Score = System.Convert.ToInt32(resultList[2]);
+                    gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
+                    gameData.RoundsLost = gameData.TeamNumber == 1 ? team2Score : team1Score;
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+
+            resultList.Clear();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT team{gameData.TeamNumber}_name FROM get5_stats_matches WHERE matchid='{matchId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        resultList.Add(rdr[0].ToString());
+                    }
+
+                    gameData.TeamName = resultList[0];
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+
+            return gameData;
+        }
+
         public static async Task DeletePlayerSteamID(string discordId)
         {
             HitException = null;
@@ -382,6 +539,34 @@ namespace SquidBot_Sharp.Modules
             return;
         }
 
+        public static async Task DeletePlayerStats(string discordId)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = $"DELETE FROM MatchmakingStats WHERE PlayerID='{discordId}';";
+                    await cmd.PrepareAsync();
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
         public static async Task AddPlayerMatchmakingStat(PlayerData player)
         {
             HitException = null;
@@ -393,7 +578,7 @@ namespace SquidBot_Sharp.Modules
                     MySqlCommand cmd = new MySqlCommand();
                     cmd.Connection = con;
 
-                    cmd.CommandText = "INSERT INTO MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots,MVPCount) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots, @mvps);";
+                    cmd.CommandText = "INSERT INTO MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);";
                     await cmd.PrepareAsync();
 
                     cmd.Parameters.AddWithValue("@name", player.Name);
@@ -407,7 +592,7 @@ namespace SquidBot_Sharp.Modules
                     cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
                     cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
                     cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
-                    cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
+                    //cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
 
                     await cmd.ExecuteNonQueryAsync();
                 }
@@ -434,7 +619,7 @@ namespace SquidBot_Sharp.Modules
                     MySqlCommand cmd = new MySqlCommand();
                     cmd.Connection = con;
 
-                    cmd.CommandText = "UPDATE SET MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots,MVPCount) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots, @mvps);";
+                    cmd.CommandText = "UPDATE SET MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);";
                     await cmd.PrepareAsync();
 
                     cmd.Parameters.AddWithValue("@name", player.Name);
@@ -448,7 +633,7 @@ namespace SquidBot_Sharp.Modules
                     cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
                     cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
                     cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
-                    cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
+                    //cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
 
                     await cmd.ExecuteNonQueryAsync();
                 }
