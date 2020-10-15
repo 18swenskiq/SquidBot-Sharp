@@ -261,6 +261,7 @@ namespace SquidBot_Sharp.Commands
                 };
 
                 embed.AddField(">startqueue", "Starts a game queue if one doesn't already exist.");
+                embed.AddField(">startqueue pick", "Starts a game queue where the users select their teammates.");
                 embed.AddField(">stopqueue", "Stops a game queue if you are the host of the queue.");
                 embed.AddField(">leavequeue", "Leaves an existing queue if you're part of it. Leaving as a host assigns a new host.");
                 embed.AddField(">queue", "Joins an ongoing queue if enough slots are left.");
