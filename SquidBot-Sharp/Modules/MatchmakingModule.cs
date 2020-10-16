@@ -135,6 +135,14 @@ namespace SquidBot_Sharp.Modules
             {
                 var player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
 
+                if(player.Name != member.DisplayName)
+                {
+                    //Update player name from nickname
+                    player.Name = member.DisplayName;
+                    await DatabaseModule.DeletePlayerStats(player.ID);
+                    await DatabaseModule.AddPlayerMatchmakingStat(player);
+                }
+
                 PlayersInQueue.Remove(member);
                 discordPlayerToGamePlayer.Remove(member);
                 gamePlayerToDiscordPlayer.Remove(player);
