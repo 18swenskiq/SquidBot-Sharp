@@ -319,6 +319,7 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">stopqueue", "Stops a game queue if you are the host of the queue.");
                 embed.AddField(">leavequeue", "Leaves an existing queue if you're part of it. Leaving as a host assigns a new host.");
                 embed.AddField(">queue", "Joins an ongoing queue if enough slots are left.");
+                embed.AddField(">spectate", "Joins the spectator list for the existing game queue. Cannot join spectators after a game has started.");
                 embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
 
