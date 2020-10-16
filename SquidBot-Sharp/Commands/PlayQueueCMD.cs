@@ -106,6 +106,26 @@ namespace SquidBot_Sharp.Commands
             await MatchmakingModule.LeaveQueue(ctx, ctx.Member);
         }
 
+        [Command("spectate"), Description("Join spectators for current game")]
+        [Aliases("spec")]
+        public async Task Spectate(CommandContext ctx)
+        {
+            if(MatchmakingModule.MatchPlaying)
+            {
+                await ctx.RespondAsync("You cannot join spectators when a game has already started");
+                return;
+            }
+            if (!MatchmakingModule.CanJoinQueue)
+            {
+                await ctx.RespondAsync("There is no queue to spectate.");
+                return;
+            }
+
+            MatchmakingModule.CurrentSpectatorIds.Add(ctx.Member.Id.ToString());
+
+            await ctx.RespondAsync("You have been added to the list of spectators when the game starts");
+        }
+
         [Command("elo"), Description("Check player elo")]
         public async Task Elo(CommandContext ctx, string discordId = "")
         {
