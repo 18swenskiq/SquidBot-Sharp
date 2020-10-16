@@ -202,7 +202,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("leaderboard"), Description("Display leaderboard")]
-        [Aliases("l")]
+        [Aliases("lb")]
         public async Task Leaderboard(CommandContext ctx, string parameters = "")
         {
             List<PlayerData> allPlayers = new List<PlayerData>();
