@@ -29,6 +29,7 @@ namespace SquidBot_Sharp.Modules
         private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 15;
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
+        public static List<string> CurrentSpectatorIds = new List<string>();
         public static DiscordMessage PreviousMessage = null;
         public static bool CanJoinQueue = true;
         public static bool Queueing = false;
@@ -62,6 +63,7 @@ namespace SquidBot_Sharp.Modules
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
             gamePlayerToDiscordPlayer.Clear();
+            CurrentSpectatorIds.Clear();
 
 
             if (PreviousMessage != null)
@@ -336,6 +338,11 @@ namespace SquidBot_Sharp.Modules
 
             var lastmatchid = await DatabaseModule.GetLastMatchID();
 
+            for (int i = 0; i < CurrentSpectatorIds.Count; i++)
+            {
+                CurrentSpectatorIds[i] = From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(CurrentSpectatorIds[i]));
+            }
+
             MatchConfigData configData = new MatchConfigData()
             {
                 matchid = $"{lastmatchid + 1}",
@@ -348,10 +355,7 @@ namespace SquidBot_Sharp.Modules
                 side_type = "standard",
                 spectators = new PlayerJsonData()
                 {
-                    players = new List<string>()
-                    {
-
-                    }
+                    players = CurrentSpectatorIds
                 },
                 maplist = new List<string>()
                 {
