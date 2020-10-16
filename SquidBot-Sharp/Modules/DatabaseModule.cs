@@ -374,7 +374,7 @@ namespace SquidBot_Sharp.Modules
                 try
                 {
                     await con.OpenAsync();
-                    string sqlquery = $"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE steamid64='{steamId}';";
+                    string sqlquery = $"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE (steamid64='{steamId}' AND matchid={matchId});";
 
                     MySqlCommand cmd = new MySqlCommand(sqlquery, con);
 
