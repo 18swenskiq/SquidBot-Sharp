@@ -500,6 +500,8 @@ namespace SquidBot_Sharp.Modules
 
             await taskMsg;
 
+            await Task.Delay(5000);
+
             //Update stats and shit
             PlayerData t1p1Final = team1[0];
             PlayerData t1p2Final = team1[1];
@@ -829,8 +831,8 @@ namespace SquidBot_Sharp.Modules
             Array.Sort(dataEntries, (x, y) => { return x.CurrentElo.CompareTo(y.CurrentElo); });
 
             return new Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>(
-                new Tuple<PlayerData, PlayerData>(dataEntries[0], dataEntries[2]),
-                new Tuple<PlayerData, PlayerData>(dataEntries[1], dataEntries[3])
+                new Tuple<PlayerData, PlayerData>(dataEntries[0], dataEntries[3]),
+                new Tuple<PlayerData, PlayerData>(dataEntries[1], dataEntries[2])
                 );
         }
 
