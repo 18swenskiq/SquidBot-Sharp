@@ -114,9 +114,14 @@ namespace SquidBot_Sharp.Commands
                 discordId = ctx.Member.Id.ToString();
             }
 
+            float elo = 1000;
             PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(discordId);
+            if(player.ID != null)
+            {
+                elo = player.CurrentElo;
+            }
 
-            await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + player.CurrentElo);
+            await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
         }
 
         [Command("queuedebug"), Description("Join CS:GO play session")]
