@@ -359,6 +359,86 @@ namespace SquidBot_Sharp.Modules
             return result != "";
         }
 
+        public static async Task<List<string>> GetTeamNamesFromMatch(int matchId)
+        {
+            HitException = null;
+            List<string> result = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT team1_name, team2_name FROM get5_stats_matches WHERE matchid='{matchId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        if (!result.Contains(rdr[0].ToString()))
+                        {
+                            result.Add(rdr[0].ToString());
+                        }
+                        if (!result.Contains(rdr[1].ToString()))
+                        {
+                            result.Add(rdr[1].ToString());
+                        }
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
+        public static async Task<List<string>> GetPlayersFromMatch(int matchId, int team)
+        {
+            HitException = null;
+            List<string> result = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT steamid64 FROM get5_stats_players WHERE (matchid='{matchId}' AND team='team{team}');";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        if(!result.Contains(rdr[0].ToString()))
+                        {
+                            result.Add(rdr[0].ToString());
+                        }
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
         public static async Task<PlayerGameData> GetPlayerStatsFromMatch(string discordId, int matchId, string teamName)
         {
             string steamId = await GetPlayerSteamIDFromDiscordID(discordId);

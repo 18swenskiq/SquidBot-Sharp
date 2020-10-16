@@ -169,6 +169,38 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
+        [Command("Recalculate"), Description("Join CS:GO play session")]
+        public async Task Recalculate(CommandContext ctx)
+        {
+            if(!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
+            {
+                await ctx.RespondAsync("You are not authorized to use this");
+                return;
+            }
+
+            Dictionary<string, string> steamIdToPlayerId = new Dictionary<string, string>();
+            //Reset all player ELO first
+            List<string> ids = await DatabaseModule.GetPlayerMatchmakingStatsIds();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(ids[i]);
+                player = new PlayerData()
+                {
+                    ID = player.ID,
+                    Name = player.Name,
+                    CurrentElo = 1000
+                };
+
+                steamIdToPlayerId.Add(await DatabaseModule.GetPlayerSteamIDFromDiscordID(player.ID), player.ID);
+
+                await DatabaseModule.DeletePlayerStats(ids[i]);
+                await DatabaseModule.AddPlayerMatchmakingStat(player);
+            }
+
+            //Go through all the matches and recalculate their ELO
+            await MatchmakingModule.RecalculateAllElo(ctx, steamIdToPlayerId);
+        }
+
         [Command("test"), Description("Join CS:GO play session")]
         public async Task Test(CommandContext ctx)
         {

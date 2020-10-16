@@ -476,7 +476,6 @@ namespace SquidBot_Sharp.Modules
         {
             while(true)
             {
-                await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
                 bool currentstatus;
                 currentstatus = await DatabaseModule.HasMatchEnded(matchId);
                 Console.WriteLine($"CHECK END LOOP STATUS: {currentstatus}");
@@ -484,6 +483,7 @@ namespace SquidBot_Sharp.Modules
                 {
                     break;
                 }
+                await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
             }
 
             Console.WriteLine("Got through RCON command");
@@ -577,12 +577,18 @@ namespace SquidBot_Sharp.Modules
             };
 
             string diffVal = "";
-            
+
+            //string wonLost = team1player1Data.WonGame ? " (Won)" : " (Lost)";
+            //embed.AddField("Team " + team1Name + wonLost, "Combined Elo: " + team1Data.CombinedElo);
+
             diffVal = t1p1EloDiff > 0 ? "+" : "";
             embed.AddField(t1p1Final.Name + " Elo: " + (int)(t1p1Final.CurrentElo) + " (" + diffVal + t1p1EloDiff + ")", "Kills: " + team1player1Data.KillCount + " | Assists: " + team1player1Data.AssistCount + " | Deaths: " + team1player1Data.DeathCount);
 
             diffVal = t1p2EloDiff > 0 ? "+" : "";
             embed.AddField(t1p2Final.Name + " Elo: " + (int)(t1p2Final.CurrentElo) + " (" + diffVal + t1p2EloDiff + ")", "Kills: " + team1player2Data.KillCount + " | Assists: " + team1player2Data.AssistCount + " | Deaths: " + team1player2Data.DeathCount);
+
+            //wonLost = team2player1Data.WonGame ? " (Won)" : " (Lost)";
+            //embed.AddField("Team " + team2Name + wonLost, "Combined Elo: " + team2Data.CombinedElo);
 
             diffVal = t2p1EloDiff > 0 ? "+" : "";
             embed.AddField(t2p1Final.Name + " Elo: " + (int)(t2p1Final.CurrentElo) + " (" + diffVal + t2p1EloDiff + ")", "Kills: " + team2player1Data.KillCount + " | Assists: " + team2player1Data.AssistCount + " | Deaths: " + team2player1Data.DeathCount);
@@ -609,6 +615,42 @@ namespace SquidBot_Sharp.Modules
             {
                 Console.WriteLine(e.Message);
             }
+        }
+
+        public static async Task RecalculateAllElo(CommandContext ctx, Dictionary<string, string> steamIdToPlayerId)
+        {
+            int lastMatchId = await DatabaseModule.GetLastMatchID();
+
+            int currentMatchId = 1;
+            while(currentMatchId <= lastMatchId)
+            {
+                if(await DatabaseModule.HasMatchEnded(currentMatchId))
+                {
+                    await ctx.RespondAsync("Starting evaluation of match id: " + currentMatchId);
+                    List<string> playerIdsTeam1 = await DatabaseModule.GetPlayersFromMatch(currentMatchId, 1);
+                    List<string> playerIdsTeam2 = await DatabaseModule.GetPlayersFromMatch(currentMatchId, 2);
+
+                    List<PlayerData> playersTeam1 = new List<PlayerData>();
+                    for (int i = 0; i < playerIdsTeam1.Count; i++)
+                    {
+                        playersTeam1.Add(await DatabaseModule.GetPlayerMatchmakingStats(steamIdToPlayerId[playerIdsTeam1[i]]));
+                    }
+
+                    List<PlayerData> playersTeam2 = new List<PlayerData>();
+                    for (int i = 0; i < playerIdsTeam2.Count; i++)
+                    {
+                        playersTeam2.Add(await DatabaseModule.GetPlayerMatchmakingStats(steamIdToPlayerId[playerIdsTeam2[i]]));
+                    }
+
+                    List<string> teamNames = await DatabaseModule.GetTeamNamesFromMatch(currentMatchId);
+
+                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1]);
+
+                }
+                currentMatchId++;
+            }
+
+            await ctx.RespondAsync("All matches recalculated.");
         }
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
@@ -846,19 +888,19 @@ namespace SquidBot_Sharp.Modules
             float scalingRatio = 1 - MathF.Min(0.75f, allGamesPlayed / BEGINNER_GAME_COUNT);
 
             float GAME_WIN_SCALING_FACTOR = 20 * scalingRatio;
-            float ROUND_SCALING_FACTOR = 20 * scalingRatio;
-            float KILL_SCALING_FACTOR = 10 * scalingRatio;
+            float ROUND_SCALING_FACTOR = 10 * scalingRatio;
+            float KILL_SCALING_FACTOR = 5 * scalingRatio;
             float ASSIST_SCALING_FACTOR = 1;
             float DEATH_SCALING_FACTOR = 4;
             float HEADSHOT_SCALING_FACTOR = 2;
             //float MVP_SCALING_FACTOR = 2;
 
             const float WIN_REDUCE = 1.5f;
-            const float ROUND_REDUCE = 1.2f;
-            const float KILL_REDUCE = 0.8f;
+            const float ROUND_REDUCE = 0.5f;
+            const float KILL_REDUCE = 0.4f;
             const float ASSIST_REDUCE = 0.2f;
-            const float DEATH_REDUCE = 0.6f;
-            const float HEADSHOT_REDUCE = 0.4f;
+            const float DEATH_REDUCE = 0.5f;
+            const float HEADSHOT_REDUCE = 0.2f;
             //const float MVP_REDUCE = 0.25f;
 
             float currentPlayerElo = player.CurrentElo;
