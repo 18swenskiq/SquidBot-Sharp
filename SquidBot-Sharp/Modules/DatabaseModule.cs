@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
+using MySqlX.XDevAPI.Common;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
 
@@ -182,37 +183,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return result;
+            string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
+            return await GetStringFromDatabase(sqlquery);
         }
 
         public static async Task<List<string>> GetAllMapNames()
@@ -321,36 +293,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<bool> HasMatchEnded(int id)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+            string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
+            var result = await GetStringFromDatabase(sqlquery);
             return result != "";
         }
 
@@ -950,6 +894,36 @@ namespace SquidBot_Sharp.Modules
             }
 
             return foundServer;
+        }
+
+        private static async Task<string> GetStringFromDatabase(string query)
+        {
+            HitException = null;
+            string result = string.Empty;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand(query, con);
+                    var rdr = await cmd.ExecuteReaderAsync();
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                    Console.WriteLine("Hit exception in GetStringFromDatabase: " + ex.Message);
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
         }
     }
 }
