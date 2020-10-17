@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.IO;
-using System.Net;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
-using SteamKit2;
-using SteamKit2.Internal;
-using SteamKit2.Unified.Internal;
 
 namespace SquidBot_Sharp.Modules
 {

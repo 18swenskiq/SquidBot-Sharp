@@ -5,7 +5,6 @@ using Markov;
 using SquidBot_Sharp.Modules;
 using System;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace SquidBot_Sharp.Commands
 {

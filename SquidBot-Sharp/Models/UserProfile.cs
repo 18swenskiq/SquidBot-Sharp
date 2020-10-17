@@ -1,5 +1,4 @@
-﻿using DSharpPlus.Entities;
-using System;
+﻿using System;
 
 namespace SquidBot_Sharp.Models
 {
