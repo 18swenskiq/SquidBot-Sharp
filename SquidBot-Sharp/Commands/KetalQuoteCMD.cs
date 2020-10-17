@@ -75,10 +75,6 @@ namespace SquidBot_Sharp.Commands
 
             var newQuote = new KetalQuote { Quote = quote.Result.Content, Footer = footer.Result.Content, QuoteNumber = num + 1 };
             await DatabaseModule.AddKetalQuote(newQuote.QuoteNumber, newQuote.Quote, newQuote.Footer);
-            //KetalQuoteModule.Quotes.Add(newQuote);
-
-            //KetalQuoteModule.SerializeQuotes();
-            //DatabaseModule.UploadFile("datafiles/data.ketalquotes");
 
             await ctx.RespondAsync($"Quote successfully added as #{num+1}");
         }
