@@ -72,9 +72,6 @@ namespace SquidBot_Sharp.Commands
                 }
             }
 
-            // Reverse userprofileorder so we get the times in the order we want
-            //userprofileorder.Reverse();
-
             var timesstring = "```py\n";
             var profileidsusedsofar = new List<ulong>();
 

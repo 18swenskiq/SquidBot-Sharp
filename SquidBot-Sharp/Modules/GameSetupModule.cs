@@ -2,10 +2,6 @@
 
 namespace SquidBot_Sharp.Modules
 {
-    public static class GameSetupModule
-    {
-    }
-
     public class MatchConfigData
     {
         public string matchid;
