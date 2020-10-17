@@ -1,5 +1,7 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using Microsoft.VisualBasic;
+using SquidBot_Sharp.Modules;
 using System;
 using System.IO;
 using System.Threading.Tasks;

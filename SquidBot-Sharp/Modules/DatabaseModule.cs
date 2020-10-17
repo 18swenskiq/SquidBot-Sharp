@@ -4,6 +4,7 @@ using System.Data;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using MySqlX.XDevAPI.Common;
+using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
 
@@ -289,6 +290,34 @@ namespace SquidBot_Sharp.Modules
                 }
             }
             return;
+        }
+
+        public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = "INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@quotenum", quotenumber);
+                    cmd.Parameters.AddWithValue("@quote", quote);
+                    cmd.Parameters.AddWithValue("@footer", footer);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
         }
 
         public static async Task<bool> HasMatchEnded(int id)
@@ -895,6 +924,42 @@ namespace SquidBot_Sharp.Modules
 
             return foundServer;
         }
+
+        public static async Task<List<KetalQuote>> GetKetalQuotes()
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                List<KetalQuote> quoteObjects = null;
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT QuoteNumber, Quote, Footer FROM KetalQuotes;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    DataTable temp = new DataTable();
+                    var adapter = new MySqlDataAdapter(cmd);
+                    await adapter.FillAsync(temp);
+                    quoteObjects = new List<KetalQuote>();
+                    foreach (DataRow row in temp.Rows)
+                    {
+                        var idstring = row.ItemArray[0];
+                        int quotenumvar = (int)idstring;
+                        string quotevar = (string)row.ItemArray[1];
+                        string footervar = (string)row.ItemArray[2];
+                        var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
+                        quoteObjects.Add(myquote);
+                    }
+                    return quoteObjects;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Something happened getting ketal quotes: {e}.");
+                    return quoteObjects;
+                }
+            }
+        }
+
 
         private static async Task<string> GetStringFromDatabase(string query)
         {
