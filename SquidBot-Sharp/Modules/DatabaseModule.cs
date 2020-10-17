@@ -292,34 +292,6 @@ namespace SquidBot_Sharp.Modules
             return;
         }
 
-        public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
-        {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-                    cmd.CommandText = "INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@quotenum", quotenumber);
-                    cmd.Parameters.AddWithValue("@quote", quote);
-                    cmd.Parameters.AddWithValue("@footer", footer);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-        }
-
         public static async Task<bool> HasMatchEnded(int id)
         {
             string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
@@ -925,6 +897,10 @@ namespace SquidBot_Sharp.Modules
             return foundServer;
         }
 
+        // ---------------------------------------------------------------------------------------------------------
+        // -------------------------------------KETAL QUOTES--------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+
         public static async Task<List<KetalQuote>> GetKetalQuotes()
         {
             using (MySqlConnection con = new MySqlConnection(ConnectionString))
@@ -959,7 +935,37 @@ namespace SquidBot_Sharp.Modules
                 }
             }
         }
+        public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = "INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);";
+                    await cmd.PrepareAsync();
 
+                    cmd.Parameters.AddWithValue("@quotenum", quotenumber);
+                    cmd.Parameters.AddWithValue("@quote", quote);
+                    cmd.Parameters.AddWithValue("@footer", footer);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------------------------------------------
+        // ----------------------------------GENERIC METHODS--------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
 
         private static async Task<string> GetStringFromDatabase(string query)
         {
