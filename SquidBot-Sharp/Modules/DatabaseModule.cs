@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using MySql.Data.MySqlClient;
 using MySqlX.XDevAPI.Common;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Bcpg;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
@@ -926,6 +931,7 @@ namespace SquidBot_Sharp.Modules
                         var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
                         quoteObjects.Add(myquote);
                     }
+                    await con.CloseAsync();
                     return quoteObjects;
                 }
                 catch (Exception e)
@@ -962,6 +968,68 @@ namespace SquidBot_Sharp.Modules
                 }
             }
         }
+
+        // ---------------------------------------------------------------------------------------------------------
+        // -------------------------------------Time Zone Information-----------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+        public static async Task AddTimeZoneData(string userid, string jsonstring)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = "INSERT INTO UserTimeZones(UserID, TimeZoneInfo) VALUES(@var1, @var2);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@var1", userid);
+                    cmd.Parameters.AddWithValue("@var2", jsonstring);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+        }
+
+        public static async Task<Dictionary<string, string>> CheckGuildMembersHaveTimeZoneData(IReadOnlyDictionary<ulong, DiscordMember> memberdict)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT * FROM UserTimeZones;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    DataTable temp = new DataTable();
+                    var adapter = new MySqlDataAdapter(cmd);
+                    await adapter.FillAsync(temp);
+                    var returndict = new Dictionary<string, string>();
+                    foreach (DataRow row in temp.Rows)
+                    {
+                        returndict.Add((string)row.ItemArray[0], (string)row.ItemArray[1]);
+                    }
+                    await con.CloseAsync();
+                    return returndict;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Something happened getting timezoneinfo: {e}.");
+                    throw new Exception();
+                }
+            }
+        }
+
+
 
         // ---------------------------------------------------------------------------------------------------------
         // ----------------------------------GENERIC METHODS--------------------------------------------------------

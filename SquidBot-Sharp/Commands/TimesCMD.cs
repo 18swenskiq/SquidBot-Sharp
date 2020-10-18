@@ -2,6 +2,7 @@
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using Newtonsoft.Json;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Modules;
 using SquidBot_Sharp.Utilities;
@@ -14,105 +15,143 @@ namespace SquidBot_Sharp.Commands
 {
     public class TimesCMD : BaseCommandModule
     {
+        private async Task<Dictionary<string, string>> CheckWhichUserTimeInfoExists(IReadOnlyDictionary<ulong, DiscordMember> memberdict)
+        {
+            return await DatabaseModule.CheckGuildMembersHaveTimeZoneData(memberdict);
+        }
+
+        private string BuildUTCString(int hours, int minutes)
+        {
+            string utcstring = "UTC";
+            if (hours < 0)
+            {
+                utcstring += "-";
+            }
+            else if (hours == 0)
+            {
+                utcstring += "±";
+            }
+            else
+            {
+                utcstring += "+";
+            }
+
+            if (Math.Abs(hours) < 10)
+            {
+                utcstring += $"0{Math.Abs(hours)}";
+            }
+            else
+            {
+                utcstring += Math.Abs(hours);
+            }
+
+            utcstring += ":";
+
+            if (Math.Abs(minutes) < 10)
+            {
+                utcstring += $"0{minutes}";
+            }
+            else
+            {
+                utcstring += minutes;
+            }
+
+            return utcstring;
+        }
+
         [Command("times"), Description("Get current times across the world")]
         [Cooldown(1, 5, CooldownBucketType.User)]
         public async Task Times(CommandContext ctx)
         {
-
+            var waitingmessage = await ctx.RespondAsync("Please wait while I retrieve time information...");
             // Check which user profiles we have in the current server
-            var upm = new UserProfileModule();
             var memberswithinfo = new List<DiscordMember>();
+            var existingusers = await CheckWhichUserTimeInfoExists(ctx.Guild.Members);
+
+            // Check which of those are in our guild
             foreach(var member in ctx.Guild.Members)
             {
-                var testingprofile = upm.CheckIfUserProfileExists(member.Value);
-                if (testingprofile == null) continue;
-                if (testingprofile.TimeZone == null) continue;
-
-                memberswithinfo.Add(member.Value);
+                if (existingusers.Keys.Contains(member.Key.ToString()))
+                {
+                    memberswithinfo.Add(member.Value);
+                }
             }
 
-            if(memberswithinfo.Count == 0)
+            if (memberswithinfo.Count == 0)
             {
                 await ctx.RespondAsync("No users with timezone data found on this server");
                 return;
             }
 
-            var ouruserprofiles = new List<UserProfile>();
-            // Now we have to get the user profiles
-            foreach(var user in memberswithinfo)
+            // Build dictionary only containing people that are on the current guild
+            var memberdict = new Dictionary<DiscordMember, string> { };
+            foreach(var item in memberswithinfo)
             {
-                var thisprofile = upm.DeserializeProfile(user.Id);
-                ouruserprofiles.Add(thisprofile);
+                string timezonejsonstring = existingusers[item.Id.ToString()];
+                memberdict.Add(item, timezonejsonstring);
             }
 
             var userprofileorder = new List<UserProfile>();
+            var orderedmemberdictwithvalueobj = new Dictionary<DiscordMember, TimeZoneInfo> { };
 
             foreach(var utctime in new List<string> { "UTC-12:00", "UTC-11:00", "UTC-10:00", "UTC-09:30", "UTC-09:00", "UTC-08:00", "UTC-07:00", "UTC-06:00", "UTC-05:00", "UTC-04:00", "UTC-03:30","UTC-03:00", "UTC-02:00", "UTC-01:00", "UTC±00:00", "UTC+01:00", "UTC+02:00", "UTC+03:00", "UTC+03:30", "UTC+04:00", "UTC+04:30", "UTC+05:00", "UTC+05:30", "UTC+05:45", "UTC+06:00", "UTC+07:00", "UTC+08:00", "UTC+08:45", "UTC+09:00", "UTC+09:30", "UTC+10:00", "UTC+10:30", "UTC+11:00", "UTC+12:00", "UTC+12:45", "UTC+13:00", "UTC+14:00"  })
             {
-                foreach(var user in ouruserprofiles)
+                foreach (var user in memberdict)
                 {
                     //build our UTC string from scratch
-                    var thistimehours = user.TimeZone.BaseUtcOffset.Hours;
-                    var thistimeminutes = user.TimeZone.BaseUtcOffset.Minutes;
+                    TimeZoneInfo desobj = JsonConvert.DeserializeObject<TimeZoneInfo>(user.Value);
 
-                    string utcstring = "UTC";
-                    if (thistimehours < 0) utcstring += "-";
-                    else if (thistimehours == 0) utcstring += "±";
-                    else utcstring += "+";
+                    string utcstring = BuildUTCString(desobj.BaseUtcOffset.Hours, desobj.BaseUtcOffset.Minutes);
 
-                    if (Math.Abs(thistimehours) < 10) utcstring += $"0{Math.Abs(thistimehours)}";
-                    else utcstring += Math.Abs(thistimehours);
-
-                    utcstring += ":";
-
-                    if (Math.Abs(thistimeminutes) < 10) utcstring += $"0{thistimeminutes}";
-                    else utcstring += thistimeminutes;
-
-                    if (utcstring == utctime) userprofileorder.Add(user);
+                    if (utcstring == utctime)
+                    {
+                        orderedmemberdictwithvalueobj.Add(user.Key, desobj);
+                    }
                 }
             }
 
             var timesstring = "```py\n";
             var profileidsusedsofar = new List<ulong>();
 
-            foreach(var item in userprofileorder)
+            foreach(var item in orderedmemberdictwithvalueobj)
             {
+                // Is this check actually needed? Test removing it and see if anything breaks
                 // we can skip this user if we've already used them
-                if (profileidsusedsofar.Contains(item.UserID)) continue;
+                if (profileidsusedsofar.Contains(item.Key.Id)) continue;
 
-                profileidsusedsofar.Add(item.UserID);
+                profileidsusedsofar.Add(item.Key.Id);
 
-                var userswiththistime = new List<UserProfile>();
-                foreach(var otheruserwithtime in userprofileorder)
+                var userswiththistime = new List<DiscordMember>();
+                foreach(var otheruserwithtime in orderedmemberdictwithvalueobj)
                 {
-                    if (otheruserwithtime == item) continue;
+                    if (otheruserwithtime.Key == item.Key) continue;
                     DateTime thistime = DateTime.Now;
-                    DateTime person1dt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(thistime, item.TimeZone.Id);
-                    DateTime person2dt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(thistime, otheruserwithtime.TimeZone.Id);
+                    DateTime person1dt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(thistime, item.Value.Id);
+                    DateTime person2dt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(thistime, otheruserwithtime.Value.Id);
 
                     if(person1dt == person2dt)
                     {
-                        userswiththistime.Add(otheruserwithtime);
-                        profileidsusedsofar.Add(otheruserwithtime.UserID);
+                        userswiththistime.Add(otheruserwithtime.Key);
+                        profileidsusedsofar.Add(otheruserwithtime.Key.Id);
                     }
                 }
 
-                DateTime thisdatetime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, item.TimeZone.Id);
+                DateTime thisdatetime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, item.Value.Id);
 
                 // Now that we've got all the users that belong in this time, let's make it
                 string timestringline = $"{thisdatetime.ToString("MMM dd").PadRight(7)} {thisdatetime.ToString("HH:mm")} ";
                 if(userswiththistime.Count == 0)
                 {
-                    timestringline += $"({item.ProfileName})\n";
+                    timestringline += $"({item.Key.Username})\n";
                     timesstring += timestringline;
                 }
 
                 else
                 {
-                    timestringline += $"({item.ProfileName}, ";
+                    timestringline += $"({item.Key.Username}, ";
                     if (userswiththistime.Count == 1)
                     {
-                        timestringline += $"{userswiththistime.Single().ProfileName})\n";
+                        timestringline += $"{userswiththistime.Single().Username})\n";
                         timesstring += timestringline;
                     }
                     else
@@ -121,9 +160,9 @@ namespace SquidBot_Sharp.Commands
                         foreach (var user in userswiththistime)
                         {
                             if (user == lastitem) break;
-                            timestringline += $"{user.ProfileName}, ";
+                            timestringline += $"{user.Username}, ";
                         }
-                        timestringline += $"{lastitem.ProfileName})\n";
+                        timestringline += $"{lastitem.Username})\n";
                         timesstring += timestringline;
                     }
                 }
@@ -132,12 +171,12 @@ namespace SquidBot_Sharp.Commands
 
             timesstring += "```";
 
-
+            await waitingmessage.DeleteAsync();
             await ctx.RespondAsync("Use `>settimezone` to add your own time zone!\n" + timesstring);
             return;
         }
 
-        [Command("gettimezone"), Hidden, RequireOwner]
+/*        [Command("gettimezone"), Hidden, RequireOwner]
         public async Task GetTimeZone(CommandContext ctx)
         {
             var upm = new UserProfileModule();
@@ -174,30 +213,30 @@ namespace SquidBot_Sharp.Commands
             }
 
             var upm = new UserProfileModule();
-            UserProfile thisuserprofile = null;
-            thisuserprofile = upm.CheckIfUserProfileExists(Mentioned);
-            if (thisuserprofile == null)
-            {
-                thisuserprofile = upm.BuildUserProfile(usertimezone, Mentioned);
-                if (thisuserprofile == null)
-                {
-                    await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
-                    return;
-                }
-            }
-            else
-            {
-                var isModificationSucessful = upm.ModifyUserProfile(new UserProfile { TimeZone = usertimezone, UserID = thisuserprofile.UserID, Version = thisuserprofile.Version, ProfileName = Mentioned.Username });
-                if (!isModificationSucessful)
-                {
-                    await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
-                    return;
-                }
-                await ctx.RespondAsync("Timezone successfully updated");
-                return;
-            }
-            await ctx.RespondAsync("Timezone successfully updated");
-            return;
+            //UserProfile thisuserprofile = null;
+            //var thisuserprofile = CheckIfUserTimeInfoExists(Mentioned);
+            //if (thisuserprofile == null)
+            //{
+                //thisuserprofile = upm.BuildUserProfile(usertimezone, Mentioned);
+                //if (thisuserprofile == null)
+                //{
+                    //await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
+                    //return;
+                //}
+            //}
+            //else
+            //{
+                //var isModificationSucessful = upm.ModifyUserProfile(new UserProfile { TimeZone = usertimezone, UserID = thisuserprofile.UserID, Version = thisuserprofile.Version, ProfileName = Mentioned.Username });
+                //if (!isModificationSucessful)
+                //{
+                    //await ctx.RespondAsync("Something unexpected happened. Contact Squidski");
+                    //return;
+                //}
+                //await ctx.RespondAsync("Timezone successfully updated");
+                //return;
+            //}
+            //await ctx.RespondAsync("Timezone successfully updated");
+            //return;
         }
 
         [Command("settimezone"), Description("Set your time zone through a local city name")]
@@ -223,7 +262,7 @@ namespace SquidBot_Sharp.Commands
             }
             var upm = new UserProfileModule();
             UserProfile thisuserprofile = null;
-            thisuserprofile = upm.CheckIfUserProfileExists(ctx.User);
+            //thisuserprofile = CheckIfUserTimeInfoExists(ctx.User);
             if (thisuserprofile == null)
             {
                 thisuserprofile = upm.BuildUserProfile(usertimezone, ctx.User);
@@ -278,7 +317,7 @@ namespace SquidBot_Sharp.Commands
 
             var upm = new UserProfileModule();
             UserProfile thisuserprofile = null;
-            thisuserprofile = upm.CheckIfUserProfileExists(ctx.User);
+            //thisuserprofile = await CheckIfUserTimeInfoExists(ctx.User);
             if(thisuserprofile == null)
             {
                 thisuserprofile = upm.BuildUserProfile(usertimezone, ctx.User);
@@ -301,7 +340,7 @@ namespace SquidBot_Sharp.Commands
             }
             await ctx.RespondAsync("Timezone successfully updated");
             return;
-        }
+        }*/
 
     }
 

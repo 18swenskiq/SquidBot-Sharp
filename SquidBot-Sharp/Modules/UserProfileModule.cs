@@ -8,13 +8,6 @@ namespace SquidBot_Sharp.Modules
 {
     public class UserProfileModule
     {
-
-        public UserProfile CheckIfUserProfileExists(DiscordUser UserInfo)
-        {
-            var userprofilepath = Path.Combine("datafiles\\UserProfiles\\", $"{UserInfo.Id}.userdata");
-            if (!File.Exists(userprofilepath)) return null;
-            return DeserializeProfile(UserInfo.Id);
-        }
         public UserProfile CheckIfUserProfileExists(ulong UserID)
         {
             var userprofilepath = Path.Combine("datafiles\\UserProfiles\\", $"{UserID}.userdata");
