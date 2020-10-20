@@ -5,9 +5,7 @@ using FaceitLib;
 using FaceitLib.Models.Shared;
 using SquidBot_Sharp.Models;
 using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands

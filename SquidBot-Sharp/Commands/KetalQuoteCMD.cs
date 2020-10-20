@@ -17,16 +17,17 @@ namespace SquidBot_Sharp.Commands
         public async Task KetalQuote(CommandContext ctx, [Description("Which quote number you would like to get")] int quotenumber = 9999)
         {
             var thisketalquote = new KetalQuote();
+            var KetalQuotesObjectList = await DatabaseModule.GetKetalQuotes();
 
             if (quotenumber == 9999)
             {
                 var rnd = new Random();
-                int r = rnd.Next(KetalQuoteModule.Quotes.Count);
-                thisketalquote = KetalQuoteModule.Quotes[r];
+                int r = rnd.Next(KetalQuotesObjectList.Count);
+                thisketalquote = KetalQuotesObjectList[r];
             }
             else
             {
-                thisketalquote = (from quotes in KetalQuoteModule.Quotes where quotes.QuoteNumber == quotenumber select quotes).Single();
+                thisketalquote = (from quotes in KetalQuotesObjectList where quotes.QuoteNumber == quotenumber select quotes).Single();
             }
 
             var embed = new DiscordEmbedBuilder
@@ -44,6 +45,9 @@ namespace SquidBot_Sharp.Commands
         [Command("addketalquote"), Description("Add a ketal quote (Squidski Only)"), Hidden, RequireOwner]
         public async Task AddKetalQuote(CommandContext ctx)
         {
+            // Todo: replace this with a generic "get largest number" function in the database once its done so we don't have to grab all the quotes
+            var KetalQuotesObjectList = await DatabaseModule.GetKetalQuotes();
+
             var interactivity = ctx.Client.GetInteractivity();
 
             await ctx.RespondAsync("Please enter the quote (type 'exit' to exit the interactive session)");
@@ -65,17 +69,20 @@ namespace SquidBot_Sharp.Commands
             }
 
             await ctx.RespondAsync("Building Quote...");
-            var test = (from quotes in KetalQuoteModule.Quotes select quotes.QuoteNumber).ToArray();
+            var test = (from quotes in KetalQuotesObjectList select quotes.QuoteNumber).ToArray();
 
             var num = test.Max();
 
             var newQuote = new KetalQuote { Quote = quote.Result.Content, Footer = footer.Result.Content, QuoteNumber = num + 1 };
-            KetalQuoteModule.Quotes.Add(newQuote);
-
-            KetalQuoteModule.SerializeQuotes();
-            //DatabaseModule.UploadFile("datafiles/data.ketalquotes");
+            await DatabaseModule.AddKetalQuote(newQuote.QuoteNumber, newQuote.Quote, newQuote.Footer);
 
             await ctx.RespondAsync($"Quote successfully added as #{num+1}");
         }
+    }
+    public class KetalQuote
+    {
+        public int QuoteNumber { get; set; }
+        public string Quote { get; set; }
+        public string Footer { get; set; }
     }
 }

@@ -1,16 +1,9 @@
-﻿using DSharpPlus;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using FaceitLib.Models.Shared;
-using MySql.Data.MySqlClient.Memcached;
-using Newtonsoft.Json;
 using SquidBot_Sharp.Modules;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SquidBot_Sharp.Commands
@@ -148,7 +141,7 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
         }
 
-        [Command("queuedebug"), Description("Join CS:GO play session")]
+        /*[Command("queuedebug"), Description("Join CS:GO play session")]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
             if (!MatchmakingModule.CanJoinQueue)
@@ -209,7 +202,7 @@ namespace SquidBot_Sharp.Commands
         public async Task Test(CommandContext ctx)
         {
 
-        }
+        }*/
 
         [Command("register"), Description("Register SteamID for games")]
         public async Task Register(CommandContext ctx, string steamId)

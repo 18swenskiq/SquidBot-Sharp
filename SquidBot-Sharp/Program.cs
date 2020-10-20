@@ -110,16 +110,9 @@ namespace SquidBot_Sharp
             var RCONinstance = new RconModule();
             RconInstance.RconModuleInstance = RCONinstance;
 
-            //_commands.RegisterCommands(typeof(DatabaseCMD));
-
             _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "Setting up database connections", DateTime.Now);
             // Database related startup operations
             DatabaseModule.SetUpMySQLConnection(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
-
-            // Startup KetalQuoteModule
-            //DatabaseModule.RetrieveFile(@"datafiles\data.ketalquotes");
-            KetalQuoteModule.DeserializeQuotes();
-            _client.DebugLogger.LogMessage(LogLevel.Info, "MechaSquidski", "KetalQuotes are set up", DateTime.Now);
 
             // Initiate timer for recurring tasks
             _timer = new Timer(Tick, null, TIMER_INTERVAL, Timeout.Infinite);

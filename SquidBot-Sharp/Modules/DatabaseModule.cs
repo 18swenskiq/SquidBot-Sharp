@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
-using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using MySql.Data.MySqlClient;
+using MySqlX.XDevAPI.Common;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Bcpg;
+using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
-using SteamKit2;
-using SteamKit2.Internal;
-using SteamKit2.Unified.Internal;
 
 namespace SquidBot_Sharp.Modules
 {
@@ -187,37 +189,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return result;
+            string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
+            return await GetStringFromDatabase(sqlquery);
         }
 
         public static async Task<List<string>> GetAllMapNames()
@@ -326,36 +299,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<bool> HasMatchEnded(int id)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+            string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
+            var result = await GetStringFromDatabase(sqlquery);
             return result != "";
         }
 
@@ -955,6 +900,169 @@ namespace SquidBot_Sharp.Modules
             }
 
             return foundServer;
+        }
+
+        // ---------------------------------------------------------------------------------------------------------
+        // -------------------------------------KETAL QUOTES--------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+
+        public static async Task<List<KetalQuote>> GetKetalQuotes()
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                List<KetalQuote> quoteObjects = null;
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT QuoteNumber, Quote, Footer FROM KetalQuotes;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    DataTable temp = new DataTable();
+                    var adapter = new MySqlDataAdapter(cmd);
+                    await adapter.FillAsync(temp);
+                    quoteObjects = new List<KetalQuote>();
+                    foreach (DataRow row in temp.Rows)
+                    {
+                        var idstring = row.ItemArray[0];
+                        int quotenumvar = (int)idstring;
+                        string quotevar = (string)row.ItemArray[1];
+                        string footervar = (string)row.ItemArray[2];
+                        var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
+                        quoteObjects.Add(myquote);
+                    }
+                    await con.CloseAsync();
+                    return quoteObjects;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Something happened getting ketal quotes: {e}.");
+                    return quoteObjects;
+                }
+            }
+        }
+        public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = "INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@quotenum", quotenumber);
+                    cmd.Parameters.AddWithValue("@quote", quote);
+                    cmd.Parameters.AddWithValue("@footer", footer);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------------------------------------------
+        // -------------------------------------Time Zone Information-----------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+        public static async Task AddTimeZoneData(string userid, string jsonstring)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = "INSERT INTO UserTimeZones(UserID, TimeZoneInfo) VALUES(@var1, @var2);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@var1", userid);
+                    cmd.Parameters.AddWithValue("@var2", jsonstring);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+        }
+
+        public static async Task<Dictionary<string, string>> CheckGuildMembersHaveTimeZoneData(IReadOnlyDictionary<ulong, DiscordMember> memberdict)
+        {
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT * FROM UserTimeZones;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    DataTable temp = new DataTable();
+                    var adapter = new MySqlDataAdapter(cmd);
+                    await adapter.FillAsync(temp);
+                    var returndict = new Dictionary<string, string>();
+                    foreach (DataRow row in temp.Rows)
+                    {
+                        returndict.Add((string)row.ItemArray[0], (string)row.ItemArray[1]);
+                    }
+                    await con.CloseAsync();
+                    return returndict;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Something happened getting timezoneinfo: {e}.");
+                    throw new Exception();
+                }
+            }
+        }
+
+
+
+        // ---------------------------------------------------------------------------------------------------------
+        // ----------------------------------GENERIC METHODS--------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+
+        private static async Task<string> GetStringFromDatabase(string query)
+        {
+            HitException = null;
+            string result = string.Empty;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand(query, con);
+                    var rdr = await cmd.ExecuteReaderAsync();
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                    Console.WriteLine("Hit exception in GetStringFromDatabase: " + ex.Message);
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -13,13 +12,6 @@ namespace SquidBot_Sharp.Commands
 {
     class TranslateCMD : BaseCommandModule
     {
-        //[Command("translate"), Description("Translate to a given language (language is auto detected)")]
-        //public async Task Translate(CommandContext ctx, string TranslateTo, [RemainingText] string TranslateQuery)
-        //{
-            //await TranslateCore(ctx, "ad", TranslateTo, TranslateQuery);
-            //return;
-        //}
-
         [Command("translate"), Description("Translate to a given language (language translating from must be specified")]
         [Aliases("translatem")]
         [Cooldown(1, 5, CooldownBucketType.User)]
@@ -42,8 +34,6 @@ namespace SquidBot_Sharp.Commands
             var result = webClient.DownloadString(url);
             try
             {
-                //string translatepayload = result.Substring(4, result.IndexOf("\"", 4, StringComparison.Ordinal) - 4);
-                //translatepayload = translatepayload.Replace("\\n", " ");
                 result = ParseResponse(result).TranslatedString;
                 result = result.Replace("  ", " ");
                 result = result.Replace("TOKEN_TRANSLATEAPI_QUOTATION_MARK", "\"");

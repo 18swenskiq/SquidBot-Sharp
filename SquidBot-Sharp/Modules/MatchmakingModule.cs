@@ -1,15 +1,9 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
-using FluentFTP;
-using Google.Protobuf;
 using Newtonsoft.Json;
-using Renci.SshNet;
-using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Utilities;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;

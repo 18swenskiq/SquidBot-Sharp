@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace SquidBot_Sharp.Modules
 {
-    public static class GameSetupModule
-    {
-    }
-
     public class MatchConfigData
     {
         public string matchid;
