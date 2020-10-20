@@ -48,6 +48,8 @@ namespace SquidBot_Sharp.Commands
 
             MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
 
+            await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
+
             await MatchmakingModule.JoinQueue(ctx, ctx.Member);
 
             new Task(async () => { await MatchmakingModule.TimeOut(ctx); }).Start();
@@ -75,7 +77,7 @@ namespace SquidBot_Sharp.Commands
         {
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register` to add your Steam ID.");
+                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -84,6 +86,8 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
             }
+
+            await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
             bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
 
@@ -110,7 +114,7 @@ namespace SquidBot_Sharp.Commands
         [Aliases("spec")]
         public async Task Spectate(CommandContext ctx)
         {
-            if(MatchmakingModule.MatchPlaying)
+            if(MatchmakingModule.MatchPlaying && !MatchmakingModule.SelectingMap)
             {
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;

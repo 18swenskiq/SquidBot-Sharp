@@ -35,7 +35,7 @@ namespace SquidBot_Sharp.Modules
         public static bool Queueing = false;
         public static bool MatchPlaying = false;
         public static bool CaptainPick = false;
-        private static bool SelectingMap = false;
+        public static bool SelectingMap { get; private set; } = false;
         public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
@@ -282,6 +282,7 @@ namespace SquidBot_Sharp.Modules
                     {
                         //Start map
                         // Get map ID
+                        SelectingMap = false;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
                         await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
                         break; // Why did you not add a break here 7ark PLEASE
@@ -290,6 +291,21 @@ namespace SquidBot_Sharp.Modules
                     }
                 } while (true);
 
+            }
+        }
+
+        public static async Task ChangeNameIfRelevant(DiscordMember member)
+        {
+            PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
+            if(player.ID != null)
+            {
+                if(player.Name != member.DisplayName)
+                {
+                    player.Name = member.DisplayName;
+
+                    await DatabaseModule.DeletePlayerStats(player.ID);
+                    await DatabaseModule.AddPlayerMatchmakingStat(player);
+                }
             }
         }
 
