@@ -69,7 +69,7 @@ namespace SquidBot_Sharp.Commands
         {
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
+                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register [id]` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -133,7 +133,7 @@ namespace SquidBot_Sharp.Commands
             }
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to spectate! Use `>register` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
+                await ctx.RespondAsync("You must have your Steam ID registered to spectate! Use `>register [id]` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -226,6 +226,12 @@ namespace SquidBot_Sharp.Commands
         [Command("register"), Description("Register SteamID for games")]
         public async Task Register(CommandContext ctx, string steamId)
         {
+            if(steamId == string.Empty)
+            {
+                await ctx.RespondAsync("You need to enter the id. Example: >register 76561198065593279 (Find your Steam ID here: https://steamidfinder.com/)");
+                return;
+            }
+
             bool failedToConvert = false;
             try
             {
