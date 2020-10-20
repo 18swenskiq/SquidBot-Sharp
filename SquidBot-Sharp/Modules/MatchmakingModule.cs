@@ -289,7 +289,7 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        public static async Task ChangeNameIfRelevant(DiscordMember member)
+        public static async Task<bool> ChangeNameIfRelevant(DiscordMember member)
         {
             PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
             if(player.ID != null)
@@ -300,8 +300,12 @@ namespace SquidBot_Sharp.Modules
 
                     await DatabaseModule.DeletePlayerStats(player.ID);
                     await DatabaseModule.AddPlayerMatchmakingStat(player);
+
+                    return true;
                 }
             }
+
+            return false;
         }
 
         private static string From64ToLegacy(string input64)

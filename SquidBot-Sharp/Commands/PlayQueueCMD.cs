@@ -10,7 +10,6 @@ namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
-
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq")]
         public async Task Play(CommandContext ctx, string extra = "")
@@ -101,6 +100,21 @@ namespace SquidBot_Sharp.Commands
             }
 
             await MatchmakingModule.LeaveQueue(ctx, ctx.Member);
+        }
+
+        [Command("updatename"), Description("Updates matchmaking name to current nickname")]
+        public async Task UpdateName(CommandContext ctx)
+        {
+            bool success = await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
+
+            if(success)
+            {
+                await ctx.RespondAsync("Your name was updated to " + ctx.Member.DisplayName);
+            }
+            else
+            {
+                await ctx.RespondAsync("Your name was unable to be updated (You may not be in the system yet. Try playing at least one game.)");
+            }
         }
 
         [Command("spectate"), Description("Join spectators for current game")]
@@ -351,6 +365,7 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">spectate", "Joins the spectator list for the existing game queue. Cannot join spectators after a game has started.");
                 embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
+                embed.AddField(">updatename", "Updates your stored name (used for leaderboards). This automatically updates when you queue for a game.");
 
                 await ctx.RespondAsync(embed: embed);
             }
