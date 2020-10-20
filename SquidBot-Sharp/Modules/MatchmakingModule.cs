@@ -596,11 +596,14 @@ namespace SquidBot_Sharp.Modules
             }
 
             taskMsg = ctx.RespondAsync(embed: embed);
-            PreviousMessage = taskMsg.Result;
+            //PreviousMessage = taskMsg.Result;
+            PreviousMessage = null;
 
             await taskMsg;
 
             var localrcon = RconInstance.RconModuleInstance;
+
+            await Reset();
             try
             {
                 await localrcon.RconCommand("sc1", "exit");
