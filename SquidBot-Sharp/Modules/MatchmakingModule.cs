@@ -174,6 +174,7 @@ namespace SquidBot_Sharp.Modules
                 Color = new DiscordColor(0x3277a8),
                 Title = "CS:GO Match Queue " + playersNeededText,
                 Timestamp = DateTime.UtcNow,
+                Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Type >queue to join" }
             };
 
             PlayerData captain = null;
@@ -345,7 +346,8 @@ namespace SquidBot_Sharp.Modules
             {
                 Color = new DiscordColor(0x3277a8),
                 Title = $":gear: Please wait while the server is setup...",
-                Timestamp = DateTime.UtcNow,            
+                Timestamp = DateTime.UtcNow,
+                Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Map: " + mapName }
             };
 
             var embedmessage = await ctx.RespondAsync(embed: waitingembed);
@@ -470,6 +472,7 @@ namespace SquidBot_Sharp.Modules
                 Description = $"Connect Information: `connect sc1.quintonswenski.com`",
                 Timestamp = DateTime.UtcNow,
                 ImageUrl = iteminfo[0].PreviewURL,
+                Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Map: " + mapName }
             };
             matchembed.AddField($"Team {team1Name}", $"{team1[0].Name}\n{team1[1].Name}", true);
             matchembed.AddField($"Team {team2Name}", $"{team2[0].Name}\n{team2[1].Name}", true);
@@ -503,6 +506,7 @@ namespace SquidBot_Sharp.Modules
                 Color = new DiscordColor(0x3277a8),
                 Title = "CS:GO Match Finished! Calculating results...",
                 Timestamp = DateTime.UtcNow,
+                Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Map: " + mapName }
             };
 
             Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
