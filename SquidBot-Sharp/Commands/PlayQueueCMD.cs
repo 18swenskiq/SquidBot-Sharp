@@ -224,7 +224,7 @@ namespace SquidBot_Sharp.Commands
         }*/
 
         [Command("register"), Description("Register SteamID for games")]
-        public async Task Register(CommandContext ctx, string steamId)
+        public async Task Register(CommandContext ctx, string steamId = "")
         {
             if(steamId == string.Empty)
             {
