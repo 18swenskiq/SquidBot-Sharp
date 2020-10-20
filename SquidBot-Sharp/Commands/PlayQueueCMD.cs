@@ -131,6 +131,11 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("There is no queue to spectate.");
                 return;
             }
+            if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
+            {
+                await ctx.RespondAsync("You must have your Steam ID registered to spectate! Use `>register` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
+                return;
+            }
 
             MatchmakingModule.CurrentSpectatorIds.Add(ctx.Member.Id.ToString());
 
