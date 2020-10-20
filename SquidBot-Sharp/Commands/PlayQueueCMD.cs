@@ -10,7 +10,6 @@ namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
-
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq")]
         public async Task Play(CommandContext ctx, string extra = "")
@@ -41,6 +40,8 @@ namespace SquidBot_Sharp.Commands
 
             MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
 
+            await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
+
             await MatchmakingModule.JoinQueue(ctx, ctx.Member);
 
             new Task(async () => { await MatchmakingModule.TimeOut(ctx); }).Start();
@@ -68,7 +69,7 @@ namespace SquidBot_Sharp.Commands
         {
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
-                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register` to add your Steam ID.");
+                await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register [id]` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -77,6 +78,8 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
             }
+
+            await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
             bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
 
@@ -99,11 +102,26 @@ namespace SquidBot_Sharp.Commands
             await MatchmakingModule.LeaveQueue(ctx, ctx.Member);
         }
 
+        [Command("updatename"), Description("Updates matchmaking name to current nickname")]
+        public async Task UpdateName(CommandContext ctx)
+        {
+            bool success = await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
+
+            if(success)
+            {
+                await ctx.RespondAsync("Your name was updated to " + ctx.Member.DisplayName);
+            }
+            else
+            {
+                await ctx.RespondAsync("Your name was unable to be updated (You may not be in the system yet. Try playing at least one game.)");
+            }
+        }
+
         [Command("spectate"), Description("Join spectators for current game")]
         [Aliases("spec")]
         public async Task Spectate(CommandContext ctx)
         {
-            if(MatchmakingModule.MatchPlaying)
+            if(MatchmakingModule.MatchPlaying && !MatchmakingModule.SelectingMap)
             {
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;
@@ -111,6 +129,11 @@ namespace SquidBot_Sharp.Commands
             if (!MatchmakingModule.CanJoinQueue)
             {
                 await ctx.RespondAsync("There is no queue to spectate.");
+                return;
+            }
+            if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
+            {
+                await ctx.RespondAsync("You must have your Steam ID registered to spectate! Use `>register [id]` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
             }
 
@@ -203,6 +226,12 @@ namespace SquidBot_Sharp.Commands
         [Command("register"), Description("Register SteamID for games")]
         public async Task Register(CommandContext ctx, string steamId)
         {
+            if(steamId == string.Empty)
+            {
+                await ctx.RespondAsync("You need to enter the id. Example: >register 76561198065593279 (Find your Steam ID here: https://steamidfinder.com/)");
+                return;
+            }
+
             bool failedToConvert = false;
             try
             {
@@ -347,6 +376,7 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">spectate", "Joins the spectator list for the existing game queue. Cannot join spectators after a game has started.");
                 embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
+                embed.AddField(">updatename", "Updates your stored name (used for leaderboards). This automatically updates when you queue for a game.");
 
                 await ctx.RespondAsync(embed: embed);
             }
