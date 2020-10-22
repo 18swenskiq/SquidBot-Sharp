@@ -104,5 +104,18 @@ namespace SquidBot_Sharp.Utilities
             legacy_z = Convert.ToInt32(legacy_z_str, 2);
             return $"STEAM_{legacy_x}:{legacy_y}:{legacy_z}";
         }
+
+        public static string GetHalfString(string inputstring, bool firsthalf)
+        {
+            int isL = (int)MathF.Floor((float)inputstring.Length / 2f);
+            if (firsthalf)
+            {
+                return inputstring.Substring(0, isL);
+            }
+            else
+            {
+                return inputstring.Substring(isL, inputstring.Length - isL);
+            }
+        }
     }
 }

@@ -26,7 +26,6 @@ namespace SquidBot_Sharp.Modules
         private const int SECONDS_UNTIL_TIMEOUT = SECONDS_IN_MINUTE * 5;
         private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 5;
         private const bool PRE_SETUP_ONLY = false;
-        private static Random rng = new Random();
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static List<string> CurrentSpectatorIds = new List<string>();
@@ -35,10 +34,12 @@ namespace SquidBot_Sharp.Modules
         public static bool Queueing = false;
         public static bool MatchPlaying = false;
         public static bool CaptainPick = false;
+        public static ulong CurrentMapID;
         public static bool SelectingMap { get; private set; } = false;
         public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
+        private static Random rng = new Random();
 
 
 
@@ -210,17 +211,8 @@ namespace SquidBot_Sharp.Modules
                 captain = Team1Player1;
                 enemyCaptain = Team2Player1;
 
-                int t1p1L = (int)MathF.Floor((float)Team1Player1.Name.Length / 2f);
-                int t1p2L = (int)MathF.Floor((float)Team1Player2.Name.Length / 2f);
-                int t2p1L = (int)MathF.Floor((float)Team2Player1.Name.Length / 2f);
-                int t2p2L = (int)MathF.Floor((float)Team2Player2.Name.Length / 2f);
-
-                string team1Player1Half = Team1Player1.Name.Substring(0, t1p1L);
-                string team1Player2Half = Team1Player2.Name.Substring(t1p2L, Team1Player2.Name.Length - t1p2L);
-                string team2Player1Half = Team2Player1.Name.Substring(0, t2p1L);
-                string team2Player2Half = Team2Player2.Name.Substring(t2p2L, Team2Player2.Name.Length - t2p2L);
-                team1Name = team1Player1Half + team1Player2Half;
-                team2Name = team2Player1Half + team2Player2Half;
+                team1Name = GeneralUtil.GetHalfString(Team1Player1.Name, true) + GeneralUtil.GetHalfString(Team1Player2.Name, false);
+                team2Name = GeneralUtil.GetHalfString(Team2Player1.Name, true) + GeneralUtil.GetHalfString(Team2Player2.Name, false);
 
                 embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo + ") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
                 embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ")");
@@ -280,20 +272,20 @@ namespace SquidBot_Sharp.Modules
                 PreviousMessage = taskMapMsg.Result;
 
                 await taskMapMsg;
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":one:"));
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":two:"));
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":three:"));
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":four:"));
+                for(int i = 1; i <= 4; i++)
+                {
+                    await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, $":{numbersWritten[i]}:"));
+                }
 
                 List<string> mapNames;
 
                 while (true)
                 {
                     var listoflists = new List<IReadOnlyList<DiscordUser>>();
-                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":one:")));
-                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":two:")));
-                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":three:")));
-                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":four:")));
+                    for (int i = 1; i <= 4; i++)
+                    {
+                        listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, $":{numbersWritten[i]}:")));
+                    }
 
                     var tempMapNames = await DatabaseModule.GetAllMapNames();
 
@@ -406,6 +398,7 @@ namespace SquidBot_Sharp.Modules
                         //Start map
                         SelectingMap = false;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
+                        CurrentMapID = ulong.Parse(mapid);
                         await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
                         break;
                     }
@@ -536,6 +529,7 @@ namespace SquidBot_Sharp.Modules
 
             await MatchPostGame(ctx, lastmatchid + 1, mapName, team1, team2, team1Name, team2Name);
         }
+
 
         public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {

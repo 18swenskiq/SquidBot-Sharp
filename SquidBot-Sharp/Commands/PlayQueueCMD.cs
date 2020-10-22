@@ -2,6 +2,7 @@
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using SquidBot_Sharp.Modules;
+using SquidBot_Sharp.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -159,8 +160,8 @@ namespace SquidBot_Sharp.Commands
 
             await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
         }
-        /*
-        [Command("queuedebug"), Description("Join CS:GO play session")]
+
+        [Command("queuedebug"), Description("Join CS:GO play session"), RequireOwner]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
             if (!MatchmakingModule.CanJoinQueue)
@@ -185,6 +186,28 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
+        [Command("forcemapchange"), Description("Force a map change on the server")]
+        public async Task ForceMapChange(CommandContext ctx)
+        {
+            if(MatchmakingModule.PlayersInQueue[0].Id == ctx.User.Id || MatchmakingModule.PlayersInQueue[0].Id == 66318815247466496)
+            {
+                if(MatchmakingModule.MatchPlaying)
+                {
+                    var localrcon = RconInstance.RconModuleInstance;
+                    await localrcon.RconCommand("sc1", $"host_workshop_map {MatchmakingModule.CurrentMapID}");
+                    await ctx.RespondAsync("Sent command to force the server to change maps");
+                    return;
+                }
+                else
+                {
+                    await ctx.RespondAsync("A map is not currently running on the server");
+                    return;
+                }
+            }
+            await ctx.RespondAsync("You do not have the proper permissions to call this command currently");
+            return;
+        }
+        /*
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx)
         {
