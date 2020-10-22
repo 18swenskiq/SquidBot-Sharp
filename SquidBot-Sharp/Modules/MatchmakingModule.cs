@@ -308,9 +308,10 @@ namespace SquidBot_Sharp.Modules
 
             SelectingMap = true;
             await taskMapMsg;
-            for (int i = 1; i <= 4; i++)
+            for (int i = 0; i < mapSelectionTypesLength; i++)
             {
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, $":{numbersWritten[i]}:"));
+                MapSelectionType type = (MapSelectionType)i;
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, type.GetEmoteRepresentation()));
             }
 
             var allMapNames = await DatabaseModule.GetAllMapNames();
