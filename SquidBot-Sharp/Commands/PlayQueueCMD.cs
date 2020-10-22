@@ -543,6 +543,11 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
                 embed.AddField(">updatename", "Updates your stored name (used for leaderboards). This automatically updates when you queue for a game.");
+                embed.AddField(">elo", "See your current elo");
+                embed.AddField(">elo [discord id]", "See the current elo of the given discord id");
+                embed.AddField(">squidcoin", "See how much squidcoin you currently have");
+                embed.AddField(">squidcoin [discord id]", "See how much squidcoin the given discord id has");
+                embed.AddField(">bet [amount] [discord id]", "When a game is queueing, you can bet an amount of SquidCoins you have on a specific user (using their discord id)");
 
                 await ctx.RespondAsync(embed: embed);
             }
