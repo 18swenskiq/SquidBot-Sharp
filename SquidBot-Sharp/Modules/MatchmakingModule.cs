@@ -33,6 +33,7 @@ namespace SquidBot_Sharp.Modules
         private const long SQUID_COIN_REWARD_SPECTATE = 3;
         private const long SQUID_COIN_REWARD_PLAY = 10;
         private const float SQUID_COIN_BET_WIN = 2f;
+        private const int SECONDS_IN_ALLOW_BETTING = 45;
 
         public static Dictionary<string, BetData> Bets = new Dictionary<string, BetData>();
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
@@ -45,6 +46,7 @@ namespace SquidBot_Sharp.Modules
         public static bool CaptainPick = false;
         public static ulong CurrentMapID;
         public static bool SelectingMap { get; private set; } = false;
+        public static bool BettingAllowed { get; private set; } = false;
         public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
@@ -71,6 +73,7 @@ namespace SquidBot_Sharp.Modules
             MatchPlaying = false;
             CanJoinQueue = true;
             Queueing = false;
+            BettingAllowed = false;
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
             gamePlayerToDiscordPlayer.Clear();
@@ -191,6 +194,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task UpdatePlayList(CommandContext ctx)
         {
+            BettingAllowed = true;
             bool readyToStart = PlayersInQueue.Count >= 4;
             string playersNeededText = "(" + (4 - PlayersInQueue.Count) + " Players Required)";
             if (readyToStart)
@@ -732,6 +736,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool adjustSquidCoin = true)
         {
+            int currentSeconds = 0;
             while (true)
             {
                 bool currentstatus;
@@ -742,6 +747,11 @@ namespace SquidBot_Sharp.Modules
                     break;
                 }
                 await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
+                currentSeconds += FREQUENCY_TO_CHECK_FOR_POSTGAME;
+                if(currentSeconds >= SECONDS_IN_ALLOW_BETTING)
+                {
+                    BettingAllowed = false;
+                }
             }
 
             var localrcon = RconInstance.RconModuleInstance;

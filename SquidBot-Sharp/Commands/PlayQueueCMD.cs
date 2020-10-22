@@ -174,9 +174,9 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("There is no game to bet on.");
                 return;
             }
-            if (MatchmakingModule.MatchPlaying && !MatchmakingModule.SelectingMap)
+            if (!MatchmakingModule.BettingAllowed)
             {
-                await ctx.RespondAsync("You cannot bet after a match has started");
+                await ctx.RespondAsync("Betting has been closed for the current match.");
                 return;
             }
             if(MatchmakingModule.PlayersInQueue.Contains(ctx.Member))
