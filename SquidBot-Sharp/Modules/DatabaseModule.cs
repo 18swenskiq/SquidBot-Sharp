@@ -452,7 +452,7 @@ namespace SquidBot_Sharp.Modules
                         resultList.Add(rdr[2].ToString());
                     }
 
-                    gameData.WonGame = gameData.TeamNumber == 1 && resultList[0] == "team1";
+                    gameData.WonGame = resultList[0] == "none" ? true : gameData.TeamNumber == 1 && resultList[0] == "team1";
                     int team1Score = System.Convert.ToInt32(resultList[1]);
                     int team2Score = System.Convert.ToInt32(resultList[2]);
                     gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
