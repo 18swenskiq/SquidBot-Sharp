@@ -494,8 +494,8 @@ namespace SquidBot_Sharp.Modules
             await Task.Delay(2500);
             await localrcon.WakeRconServer("sc1");
             await Task.Delay(2500);
-            await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
-            await Task.Delay(2000);
+            //await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
+            //await Task.Delay(2000);
             await localrcon.RconCommand("sc1", "get5_endmatch");
             await Task.Delay(500);
             await localrcon.RconCommand("sc1", "get5_endmatch");
