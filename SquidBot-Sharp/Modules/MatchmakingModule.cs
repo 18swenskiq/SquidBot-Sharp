@@ -456,7 +456,7 @@ namespace SquidBot_Sharp.Modules
                 CurrentSpectatorIds[i] = GeneralUtil.SteamIDFrom64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(CurrentSpectatorIds[i]));
             }
 
-            MatchConfigData configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name, team1[0].ID, team1[1].ID, team2[0].ID, team2[1].ID);
+            MatchConfigData configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name, await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID));
 
             string json = JsonConvert.SerializeObject(configData, Formatting.Indented);
 
