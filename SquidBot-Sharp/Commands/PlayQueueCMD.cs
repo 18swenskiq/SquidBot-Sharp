@@ -11,6 +11,33 @@ namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
+        private const ulong SQUID_CUP_ROLE = 767555242161209384;
+        [Command("squidcup"), Description("Toggle the SquidCup role")]
+        public async Task SquidCoinCheck(CommandContext ctx)
+        {
+            bool hasRole = false;
+            foreach(var role in ctx.Member.Roles)
+            {
+                if(role.Id == SQUID_CUP_ROLE)
+                {
+                    hasRole = true;
+                    break;
+                }
+            }
+
+            if(hasRole)
+            {
+                await ctx.Member.RevokeRoleAsync(ctx.Guild.Roles[SQUID_CUP_ROLE]);
+                await ctx.RespondAsync("The SquidCup role has been removed from you.");
+            }
+            else
+            {
+                await ctx.Member.GrantRoleAsync(ctx.Guild.Roles[SQUID_CUP_ROLE]);
+                await ctx.RespondAsync("The SquidCup role has been granted to you.");
+            }
+
+        }
+
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq")]
         public async Task Play(CommandContext ctx, string extra = "")
@@ -534,6 +561,7 @@ namespace SquidBot_Sharp.Commands
                     Timestamp = DateTime.UtcNow
                 };
 
+                embed.AddField(">squidcup", "Toggles the squidcup role on yourself");
                 embed.AddField(">startqueue", "Starts a game queue if one doesn't already exist.");
                 embed.AddField(">startqueue pick", "Starts a game queue where the users select their teammates.");
                 embed.AddField(">stopqueue", "Stops a game queue if you are the host of the queue.");
