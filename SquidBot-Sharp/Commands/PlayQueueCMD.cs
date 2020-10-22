@@ -385,48 +385,84 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("Steam ID added");
         }
 
+
+
+        private struct PlayerLeaderboardStats
+        {
+            public string Name;
+            public PlayerData playerData;
+            public long squidCoin;
+        }
+
         [Command("leaderboard"), Description("Display leaderboard")]
         [Aliases("lb")]
         public async Task Leaderboard(CommandContext ctx, string parameters = "", string shouldReverse = "")
         {
-            List<PlayerData> allPlayers = new List<PlayerData>();
-
-            var playerIds = await DatabaseModule.GetPlayerMatchmakingStatsIds();
-            for (int i = 0; i < playerIds.Count; i++)
-            {
-                var player = await DatabaseModule.GetPlayerMatchmakingStats(playerIds[i]);
-
-                allPlayers.Add(player);
-            }
-
+            List<PlayerLeaderboardStats> allPlayers = new List<PlayerLeaderboardStats>();
             parameters = parameters.ToLower();
-            if(parameters.Contains("kill"))
+
+            if (parameters.Contains("squidcoin"))
             {
-                allPlayers.Sort((x, y) => { return y.TotalKillCount.CompareTo(x.TotalKillCount); });
-            }
-            else if (parameters.Contains("assist"))
-            {
-                allPlayers.Sort((x, y) => { return y.TotalAssistCount.CompareTo(x.TotalAssistCount); });
-            }
-            else if (parameters.Contains("death"))
-            {
-                allPlayers.Sort((x, y) => { return y.TotalDeathCount.CompareTo(x.TotalDeathCount); });
-            }
-            else if (parameters.Contains("headshot"))
-            {
-                allPlayers.Sort((x, y) => { return y.TotalHeadshotCount.CompareTo(x.TotalHeadshotCount); });
-            }
-            else if (parameters.Contains("round"))
-            {
-                allPlayers.Sort((x, y) => { return y.TotalRoundsWon.CompareTo(x.TotalRoundsWon); });
-            }
-            else if (parameters.Contains("game"))
-            {
-                allPlayers.Sort((x, y) => { return y.TotalGamesWon.CompareTo(x.TotalGamesWon); });
+                var playerIds = await DatabaseModule.GetPlayerSquidIds();
+                for (int i = 0; i < playerIds.Count; i++)
+                {
+                    DiscordUser user = await ctx.Client.GetUserAsync(System.Convert.ToUInt64(playerIds[i]));
+                    long coins = await DatabaseModule.GetPlayerSquidCoin(playerIds[i]);
+
+                    allPlayers.Add(new PlayerLeaderboardStats()
+                    {
+                        Name = user.Username,
+                        squidCoin = coins
+                    });
+                }
             }
             else
             {
-                allPlayers.Sort((x, y) => { return y.CurrentElo.CompareTo(x.CurrentElo); });
+                var playerIds = await DatabaseModule.GetPlayerMatchmakingStatsIds();
+                for (int i = 0; i < playerIds.Count; i++)
+                {
+                    var player = await DatabaseModule.GetPlayerMatchmakingStats(playerIds[i]);
+
+                    allPlayers.Add(new PlayerLeaderboardStats()
+                    {
+                        Name = player.Name,
+                        playerData = player
+                    });
+                }
+            }
+
+
+            if(parameters.Contains("kill"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalKillCount.CompareTo(x.playerData.TotalKillCount); });
+            }
+            else if (parameters.Contains("assist"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalAssistCount.CompareTo(x.playerData.TotalAssistCount); });
+            }
+            else if (parameters.Contains("death"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalDeathCount.CompareTo(x.playerData.TotalDeathCount); });
+            }
+            else if (parameters.Contains("headshot"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalHeadshotCount.CompareTo(x.playerData.TotalHeadshotCount); });
+            }
+            else if (parameters.Contains("round"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalRoundsWon.CompareTo(x.playerData.TotalRoundsWon); });
+            }
+            else if (parameters.Contains("game"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalGamesWon.CompareTo(x.playerData.TotalGamesWon); });
+            }
+            else if (parameters.Contains("squidcoin"))
+            {
+                allPlayers.Sort((x, y) => { return y.squidCoin.CompareTo(x.squidCoin); });
+            }
+            else
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.CurrentElo.CompareTo(x.playerData.CurrentElo); });
             }
 
             bool reverse = shouldReverse.ToLower() == "reverse" || shouldReverse.ToLower() == "r";
@@ -449,31 +485,35 @@ namespace SquidBot_Sharp.Commands
 
                 if(parameters.Contains("kill"))
                 {
-                    valueDisplay = "Kills: " + allPlayers[i].TotalKillCount.ToString();
+                    valueDisplay = "Kills: " + allPlayers[i].playerData.TotalKillCount.ToString();
                 }
                 else if (parameters.Contains("assist"))
                 {
-                    valueDisplay = "Assists: " + allPlayers[i].TotalAssistCount.ToString();
+                    valueDisplay = "Assists: " + allPlayers[i].playerData.TotalAssistCount.ToString();
                 }
                 else if (parameters.Contains("death"))
                 {
-                    valueDisplay = "Deaths: " + allPlayers[i].TotalDeathCount.ToString();
+                    valueDisplay = "Deaths: " + allPlayers[i].playerData.TotalDeathCount.ToString();
                 }
                 else if (parameters.Contains("headshot"))
                 {
-                    valueDisplay = "Headshots: " + allPlayers[i].TotalHeadshotCount.ToString();
+                    valueDisplay = "Headshots: " + allPlayers[i].playerData.TotalHeadshotCount.ToString();
                 }
                 else if (parameters.Contains("round"))
                 {
-                    valueDisplay = "Rounds Won: " + allPlayers[i].TotalRoundsWon.ToString();
+                    valueDisplay = "Rounds Won: " + allPlayers[i].playerData.TotalRoundsWon.ToString();
                 }
                 else if (parameters.Contains("game"))
                 {
-                    valueDisplay = "Matches Won: " + allPlayers[i].TotalGamesWon.ToString();
+                    valueDisplay = "Matches Won: " + allPlayers[i].playerData.TotalGamesWon.ToString();
+                }
+                else if (parameters.Contains("squidcoin"))
+                {
+                    valueDisplay = "SquidCoin: " + allPlayers[i].squidCoin.ToString();
                 }
                 else
                 {
-                    valueDisplay = "Elo: " + allPlayers[i].CurrentElo.ToString();
+                    valueDisplay = "Elo: " + allPlayers[i].playerData.CurrentElo.ToString();
                 }
 
                 embed.AddField((i + 1) + ". " + allPlayers[i].Name, valueDisplay);

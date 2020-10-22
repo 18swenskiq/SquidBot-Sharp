@@ -384,6 +384,43 @@ namespace SquidBot_Sharp.Modules
             }
             return System.Convert.ToInt64(result);
         }
+
+        public static async Task<List<string>> GetPlayerSquidIds()
+        {
+            HitException = null;
+            List<string> result = new List<string>();
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT PlayerID FROM SquidCoinStats;";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        result.Add(rdr[0].ToString());
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return result;
+        }
+
+
         public static async Task AddSquidCoinPlayer(string discordId, long coin)
         {
             HitException = null;
