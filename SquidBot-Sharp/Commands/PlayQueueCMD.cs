@@ -160,7 +160,7 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
         }
 
-        /*[Command("queuedebug"), Description("Join CS:GO play session")]
+        [Command("queuedebug"), Description("Join CS:GO play session")]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
             if (!MatchmakingModule.CanJoinQueue)
@@ -185,6 +185,7 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
+        /*
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx)
         {
@@ -286,10 +287,6 @@ namespace SquidBot_Sharp.Commands
             {
                 allPlayers.Sort((x, y) => { return x.TotalHeadshotCount.CompareTo(y.TotalHeadshotCount); });
             }
-            //else if (parameters.Contains("mvp"))
-            //{
-            //    allPlayers.Sort((x, y) => { return x.TotalMVPCount.CompareTo(y.TotalMVPCount); });
-            //}
             else if (parameters.Contains("round"))
             {
                 allPlayers.Sort((x, y) => { return x.TotalRoundsWon.CompareTo(y.TotalRoundsWon); });
@@ -333,10 +330,6 @@ namespace SquidBot_Sharp.Commands
                 {
                     valueDisplay = "Headshots: " + allPlayers[i].TotalHeadshotCount.ToString();
                 }
-                //else if (parameters.Contains("mvp"))
-                //{
-                //    valueDisplay = "MVPs: " + allPlayers[i].TotalMVPCount.ToString();
-                //}
                 else if (parameters.Contains("round"))
                 {
                     valueDisplay = "Rounds Won: " + allPlayers[i].TotalRoundsWon.ToString();

@@ -1,9 +1,13 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
 using Newtonsoft.Json;
 using SquidBot_Sharp.Utilities;
+using SteamKit2.GC.Artifact.Internal;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,7 +24,8 @@ namespace SquidBot_Sharp.Modules
         private const int NEEDED_FOR_RANDOMIZE = 3;
         private const int SECONDS_IN_MINUTE = 60;
         private const int SECONDS_UNTIL_TIMEOUT = SECONDS_IN_MINUTE * 5;
-        private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 15;
+        private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 5;
+        private const bool PRE_SETUP_ONLY = false;
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static List<string> CurrentSpectatorIds = new List<string>();
@@ -255,10 +260,131 @@ namespace SquidBot_Sharp.Modules
 
                 await Task.Delay(2000);
                 PreviousMessage = null;
-                List<string> mapNames = await DatabaseModule.GetAllMapNames();
+
+                // Add new methods for map selection
+                var mapselectmodeembed = new DiscordEmbedBuilder
+                {
+                    Color = new DiscordColor(0x3277a8),
+                    Title = "Map Veto Mode Selector",
+                    Timestamp = DateTime.UtcNow,
+                };
+                mapselectmodeembed.AddField("Random Pool Veto", ":one:");
+                mapselectmodeembed.AddField("All Pick/Random Selection", ":two:");
+                mapselectmodeembed.AddField("Queue Leader Pick", ":three:");
+                mapselectmodeembed.AddField("MechaSquidski's Pick", ":four:");
+                mapselectmodeembed.AddField("Queue Leader: " + PlayersInQueue[0].Nickname, "Select your preferred option for map selection!");
+
+
+                Task<DiscordMessage> taskMapMsg = ctx.RespondAsync(embed: mapselectmodeembed);
+                PreviousMessage = taskMapMsg.Result;
+
+                await taskMapMsg;
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":one:"));
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":two:"));
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":three:"));
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":four:"));
+
+                List<string> mapNames;
+
+                while (true)
+                {
+                    var listoflists = new List<IReadOnlyList<DiscordUser>>();
+                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":one:")));
+                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":two:")));
+                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":three:")));
+                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":four:")));
+
+                    var tempMapNames = await DatabaseModule.GetAllMapNames();
+
+                    if(listoflists[0].Contains(PlayersInQueue[0]))
+                    {
+                        // Complete Random Veto
+                        mapNames = tempMapNames;
+                        break;
+                    }
+                    if (listoflists[1].Contains(PlayersInQueue[0]))
+                    {
+
+                        // BUG THIS
+                        await ctx.RespondAsync($"All players, please type your map choice!");
+                        var interactivity = ctx.Client.GetInteractivity();
+                        var playerselectiondict = new Dictionary<DiscordUser, string>();
+                        while (true)
+                        {
+                            if(playerselectiondict.Count == 4)
+                            {
+                                break;
+                            }
+                            var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
+                            if (PlayersInQueue.Contains(userinput.Result.Author) && !playerselectiondict.Keys.Contains(userinput.Result.Author))
+                            {
+                                var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
+                                if(mapselectresult)
+                                {
+                                    playerselectiondict.Add(userinput.Result.Author, userinput.Result.Content);
+                                }
+                                else
+                                {
+                                    await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
+                                }
+                            }
+                        }
+                        var mapselectindex = rng.Next(0, 3);
+                        mapNames = new List<string> { playerselectiondict.ElementAt(mapselectindex).Value };
+                        break;
+
+                    }
+                    if (listoflists[2].Contains(PlayersInQueue[0]))
+                    {
+                        // Queue Leader Pick
+                        await ctx.RespondAsync($"{PlayersInQueue[0].Nickname}, please type the name of a map to play!");
+                        var interactivity = ctx.Client.GetInteractivity();
+                        while (true)
+                        {
+                            var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
+                            if (userinput.Result.Author == PlayersInQueue[0])
+                            {
+                                var boolresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
+                                if(boolresult)
+                                {
+                                    mapNames = new List<string> { userinput.Result.Content };
+                                    break;
+                                }
+                                else
+                                {
+                                    await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
+                                }
+
+                            }
+                        }
+                        break;
+
+                    }
+                    if (listoflists[3].Contains(PlayersInQueue[0]))
+                    {
+                        // MechaSquidski pick
+                        mapNames = new List<string>
+                        {
+                            tempMapNames[rng.Next(tempMapNames.Count)]
+                        };
+                        break;
+                    }
+                }
+
+                await PreviousMessage.DeleteAsync();
+                PreviousMessage = null;
 
                 do
                 {
+                    string mapSelectionResult = "";
+
+                    // If we already know what map we want, just skip the map veto part
+                    if (mapNames.Count == 1)
+                    {
+                        mapSelectionResult = mapNames[0];
+                        goto StartMap;
+                    }
+
                     List<string> mapSelection = new List<string>();
                     Shuffle(mapNames);
                     for (int i = 0; i < MAP_COUNT; i++)
@@ -267,8 +393,9 @@ namespace SquidBot_Sharp.Modules
                     }
 
                     SelectingMap = true;
-                    string mapSelectionResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
+                    mapSelectionResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
 
+                    StartMap:
                     if(mapSelectionResult == ABORT_RESULT)
                     {
                         break;
@@ -276,13 +403,10 @@ namespace SquidBot_Sharp.Modules
                     else if(mapSelectionResult != RANDOMIZE_RESULT)
                     {
                         //Start map
-                        // Get map ID
                         SelectingMap = false;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
                         await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
-                        break; // Why did you not add a break here 7ark PLEASE
-
-                        // Theoretically we replace this with like a "postgame"
+                        break;
                     }
                 } while (true);
 
@@ -308,41 +432,6 @@ namespace SquidBot_Sharp.Modules
             return false;
         }
 
-        private static string From64ToLegacy(string input64)
-        {
-            Int64 num64 = Int64.Parse(input64);
-            string binary = Convert.ToString(num64, 2);
-            binary = binary.PadLeft(64, '0');
-            int legacy_x, legacy_y, legacy_z;
-            string legacy_x_str = "";
-            string legacy_y_str = "";
-            string legacy_z_str = "";
-            string accounttype = "";
-            string accountinstance = "";
-            for (int i = 0; i < 8; i++)
-            {
-                legacy_x_str += binary[i];
-            }
-            for (int i = 8; i < 12; i++)
-            {
-                accounttype += binary[i];
-            }
-            for (int i = 12; i < 32; i++)
-            {
-                accountinstance += binary[i];
-            }
-            for (int i = 32; i < 63; i++)
-            {
-                legacy_z_str += binary[i];
-            }
-            legacy_y_str += binary[63];
-
-            legacy_x = Convert.ToInt32(legacy_x_str, 2);
-            legacy_y = Convert.ToInt32(legacy_y_str, 2);
-            legacy_z = Convert.ToInt32(legacy_z_str, 2);
-            return $"STEAM_{legacy_x}:{legacy_y}:{legacy_z}";
-        }
-
         private static async Task StartMap(CommandContext ctx, string mapID, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {
 
@@ -356,6 +445,12 @@ namespace SquidBot_Sharp.Modules
 
             var embedmessage = await ctx.RespondAsync(embed: waitingembed);
 
+            if(PRE_SETUP_ONLY)
+            {
+                await Reset();
+                return;
+            }
+
 
             var iteminfo = await SteamWorkshopModule.GetPublishedFileDetails(new List<string> { mapID });
             var bspname = iteminfo[0].Filename.Substring(iteminfo[0].Filename.LastIndexOf('/') + 1);
@@ -364,58 +459,10 @@ namespace SquidBot_Sharp.Modules
 
             for (int i = 0; i < CurrentSpectatorIds.Count; i++)
             {
-                CurrentSpectatorIds[i] = From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(CurrentSpectatorIds[i]));
+                CurrentSpectatorIds[i] = GeneralUtil.SteamIDFrom64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(CurrentSpectatorIds[i]));
             }
 
-            MatchConfigData configData = new MatchConfigData()
-            {
-                matchid = $"{lastmatchid + 1}",
-                num_maps = 1,
-                players_per_team = 2,
-                min_players_to_ready = 2,
-                min_spectators_to_ready = 0,
-                skip_veto = true,
-                veto_first = "team1",
-                side_type = "standard",
-                spectators = new PlayerJsonData()
-                {
-                    players = CurrentSpectatorIds
-                },
-                maplist = new List<string>()
-                {
-                    @$"workshop\{mapID}\{bspname}"
-                },
-                favored_percentage_team1 = 65,
-                favored_percentage_text = "HLTV Bets",
-                team1 = new TeamJsonData()
-                {
-                    name = team1Name,
-                    tag = team1Name,
-                    //flag = "FR",
-                    //logo = "nv",
-                    players = new List<string>()
-                    {
-                        From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID)),
-                        From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID)),
-                    }
-                },
-                team2 = new TeamJsonData()
-                {
-                    name = team2Name,
-                    tag = team2Name,
-                    //flag = "SE",
-                    //logo = "fntc",
-                    players = new List<string>()
-                    {
-                        From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID)),
-                        From64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID)),
-                    }
-                },
-                cvars = new CvarsJsonData()
-                {
-                    hostname = "Match server #1"
-                }
-            };
+            MatchConfigData configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name, team1[0].ID, team1[1].ID, team2[0].ID, team2[1].ID);
 
             string json = JsonConvert.SerializeObject(configData, Formatting.Indented);
 
@@ -452,6 +499,8 @@ namespace SquidBot_Sharp.Modules
             await Task.Delay(2500);
             await localrcon.WakeRconServer("sc1");
             await Task.Delay(2500);
+            await localrcon.RconCommand("sc1", $"host_workshop_map {mapID}");
+            await Task.Delay(2000);
             await localrcon.RconCommand("sc1", "get5_endmatch");
             await Task.Delay(500);
             await localrcon.RconCommand("sc1", "get5_endmatch");
@@ -466,8 +515,6 @@ namespace SquidBot_Sharp.Modules
             await Task.Delay(500);
             await localrcon.RconCommand("sc1", $"get5_loadmatch \"{path}\"");
             await Task.Delay(500);
-
-
 
             var matchembed = new DiscordEmbedBuilder
             {
@@ -503,7 +550,15 @@ namespace SquidBot_Sharp.Modules
                 await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
             }
 
-            Console.WriteLine("Got through RCON command");
+            var localrcon = RconInstance.RconModuleInstance;
+            try
+            {
+                await localrcon.RconCommand("sc1", "exit");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
 
             var embed = new DiscordEmbedBuilder
             {
@@ -596,17 +651,12 @@ namespace SquidBot_Sharp.Modules
 
             string diffVal = "";
 
-            //string wonLost = team1player1Data.WonGame ? " (Won)" : " (Lost)";
-            //embed.AddField("Team " + team1Name + wonLost, "Combined Elo: " + team1Data.CombinedElo);
 
             diffVal = t1p1EloDiff > 0 ? "+" : "";
             embed.AddField(t1p1Final.Name + " Elo: " + (int)(t1p1Final.CurrentElo) + " (" + diffVal + t1p1EloDiff + ")", "Kills: " + team1player1Data.KillCount + " | Assists: " + team1player1Data.AssistCount + " | Deaths: " + team1player1Data.DeathCount);
 
             diffVal = t1p2EloDiff > 0 ? "+" : "";
             embed.AddField(t1p2Final.Name + " Elo: " + (int)(t1p2Final.CurrentElo) + " (" + diffVal + t1p2EloDiff + ")", "Kills: " + team1player2Data.KillCount + " | Assists: " + team1player2Data.AssistCount + " | Deaths: " + team1player2Data.DeathCount);
-
-            //wonLost = team2player1Data.WonGame ? " (Won)" : " (Lost)";
-            //embed.AddField("Team " + team2Name + wonLost, "Combined Elo: " + team2Data.CombinedElo);
 
             diffVal = t2p1EloDiff > 0 ? "+" : "";
             embed.AddField(t2p1Final.Name + " Elo: " + (int)(t2p1Final.CurrentElo) + " (" + diffVal + t2p1EloDiff + ")", "Kills: " + team2player1Data.KillCount + " | Assists: " + team2player1Data.AssistCount + " | Deaths: " + team2player1Data.DeathCount);
@@ -620,22 +670,12 @@ namespace SquidBot_Sharp.Modules
             }
 
             taskMsg = ctx.RespondAsync(embed: embed);
-            //PreviousMessage = taskMsg.Result;
             PreviousMessage = null;
 
             await taskMsg;
 
-            var localrcon = RconInstance.RconModuleInstance;
-
             await Reset();
-            try
-            {
-                await localrcon.RconCommand("sc1", "exit");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            await localrcon.WakeRconServer("sc1");
         }
 
         public static async Task RecalculateAllElo(CommandContext ctx, Dictionary<string, string> steamIdToPlayerId)
@@ -764,7 +804,7 @@ namespace SquidBot_Sharp.Modules
 
             for (int i = 0; i < mapNames.Count; i++)
             {
-                embed.AddField(mapNames[i], ":" + numbersWritten[i + 1] + ":");
+                embed.AddField(mapNames[i], $":{numbersWritten[i + 1]}:");
             }
             embed.AddField("Current Captain: " + captain.Name, "Select the map to remove it from the list of options");
 
@@ -914,7 +954,6 @@ namespace SquidBot_Sharp.Modules
             float ASSIST_SCALING_FACTOR = 1;
             float DEATH_SCALING_FACTOR = 4;
             float HEADSHOT_SCALING_FACTOR = 2;
-            //float MVP_SCALING_FACTOR = 2;
 
             const float WIN_REDUCE = 1.5f;
             const float ROUND_REDUCE = 0.5f;
@@ -922,7 +961,6 @@ namespace SquidBot_Sharp.Modules
             const float ASSIST_REDUCE = 0.2f;
             const float DEATH_REDUCE = 0.5f;
             const float HEADSHOT_REDUCE = 0.2f;
-            //const float MVP_REDUCE = 0.25f;
 
             float currentPlayerElo = player.CurrentElo;
             float friendlyElo = friendlyTeam.CombinedElo / 2f;
@@ -933,7 +971,6 @@ namespace SquidBot_Sharp.Modules
             int assistCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.AssistCount : friendlyTeam.Player2MatchStats.AssistCount;
             int deathCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.DeathCount : friendlyTeam.Player2MatchStats.DeathCount;
             int headshotCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.Headshots : friendlyTeam.Player2MatchStats.Headshots;
-            //int mvpCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.MVPs : friendlyTeam.Player2MatchStats.MVPs;
 
             float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - friendlyElo) / ELO_SCALING_FACTOR)));
 
@@ -981,14 +1018,6 @@ namespace SquidBot_Sharp.Modules
             }
             headshotElo *= HEADSHOT_REDUCE;
 
-            //float mvpElo = 0;
-            //for (int i = 0; i < mvpCount; i++)
-            //{
-            //    mvpElo += MVP_SCALING_FACTOR * (1 - expected);
-            //}
-            //mvpElo *= MVP_REDUCE;
-
-
             float finalResult = currentPlayerElo
                 + roundElo
                 + winElo
@@ -996,7 +1025,6 @@ namespace SquidBot_Sharp.Modules
                 + assistElo
                 + deathElo
                 + headshotElo;
-                //+ mvpElo;
             return finalResult;
         }
     }
@@ -1020,7 +1048,6 @@ namespace SquidBot_Sharp.Modules
         public int TotalAssistCount;
         public int TotalDeathCount;
         public int TotalHeadshotCount;
-        //public int TotalMVPCount;
 
         public int TotalGames
         {
