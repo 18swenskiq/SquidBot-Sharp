@@ -271,6 +271,7 @@ namespace SquidBot_Sharp.Modules
                 Task<DiscordMessage> taskMapMsg = ctx.RespondAsync(embed: mapselectmodeembed);
                 PreviousMessage = taskMapMsg.Result;
 
+                SelectingMap = true;
                 await taskMapMsg;
                 for(int i = 1; i <= 4; i++)
                 {
