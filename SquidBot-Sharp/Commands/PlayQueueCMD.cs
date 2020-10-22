@@ -387,7 +387,7 @@ namespace SquidBot_Sharp.Commands
 
         [Command("leaderboard"), Description("Display leaderboard")]
         [Aliases("lb")]
-        public async Task Leaderboard(CommandContext ctx, string parameters = "")
+        public async Task Leaderboard(CommandContext ctx, string parameters = "", string shouldReverse = "")
         {
             List<PlayerData> allPlayers = new List<PlayerData>();
 
@@ -402,39 +402,43 @@ namespace SquidBot_Sharp.Commands
             parameters = parameters.ToLower();
             if(parameters.Contains("kill"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalKillCount.CompareTo(y.TotalKillCount); });
+                allPlayers.Sort((x, y) => { return y.TotalKillCount.CompareTo(x.TotalKillCount); });
             }
             else if (parameters.Contains("assist"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalAssistCount.CompareTo(y.TotalAssistCount); });
+                allPlayers.Sort((x, y) => { return y.TotalAssistCount.CompareTo(x.TotalAssistCount); });
             }
             else if (parameters.Contains("death"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalDeathCount.CompareTo(y.TotalDeathCount); });
+                allPlayers.Sort((x, y) => { return y.TotalDeathCount.CompareTo(x.TotalDeathCount); });
             }
             else if (parameters.Contains("headshot"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalHeadshotCount.CompareTo(y.TotalHeadshotCount); });
+                allPlayers.Sort((x, y) => { return y.TotalHeadshotCount.CompareTo(x.TotalHeadshotCount); });
             }
             else if (parameters.Contains("round"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalRoundsWon.CompareTo(y.TotalRoundsWon); });
+                allPlayers.Sort((x, y) => { return y.TotalRoundsWon.CompareTo(x.TotalRoundsWon); });
             }
             else if (parameters.Contains("game"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalGamesWon.CompareTo(y.TotalGamesWon); });
+                allPlayers.Sort((x, y) => { return y.TotalGamesWon.CompareTo(x.TotalGamesWon); });
             }
             else
             {
-                allPlayers.Sort((x, y) => { return x.CurrentElo.CompareTo(y.CurrentElo); });
+                allPlayers.Sort((x, y) => { return y.CurrentElo.CompareTo(x.CurrentElo); });
             }
 
-            allPlayers.Reverse();
+            bool reverse = shouldReverse.ToLower() == "reverse" || shouldReverse.ToLower() == "r";
+            if (reverse)
+            {
+                allPlayers.Reverse();
+            }
 
             var embed = new DiscordEmbedBuilder
             {
                 Color = new DiscordColor(0x3277a8),
-                Title = "Leaderboard",
+                Title = "Leaderboard " + (reverse ? "(Reversed)" : string.Empty),
                 Timestamp = DateTime.UtcNow
             };
 
