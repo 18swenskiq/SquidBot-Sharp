@@ -159,7 +159,7 @@ namespace SquidBot_Sharp.Commands
 
             await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
         }
-
+        /*
         [Command("queuedebug"), Description("Join CS:GO play session")]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
@@ -185,7 +185,6 @@ namespace SquidBot_Sharp.Commands
             }
         }
 
-        /*
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx)
         {

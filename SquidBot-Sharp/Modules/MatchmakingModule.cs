@@ -26,6 +26,7 @@ namespace SquidBot_Sharp.Modules
         private const int SECONDS_UNTIL_TIMEOUT = SECONDS_IN_MINUTE * 5;
         private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 5;
         private const bool PRE_SETUP_ONLY = false;
+        private static Random rng = new Random();
 
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static List<string> CurrentSpectatorIds = new List<string>();
@@ -45,7 +46,7 @@ namespace SquidBot_Sharp.Modules
         {
             await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
 
-            if(!MatchPlaying && !WasReset)
+            if (!MatchPlaying && !WasReset)
             {
                 await Reset();
                 await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
@@ -82,7 +83,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<bool> JoinQueue(CommandContext ctx, DiscordMember member)
         {
-            if(MatchPlaying)
+            if (MatchPlaying)
             {
                 return true;
             }
@@ -94,7 +95,7 @@ namespace SquidBot_Sharp.Modules
 
             var player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
 
-            if(player.ID == null)
+            if (player.ID == null)
             {
                 //Create new entry
                 player = new PlayerData()
@@ -107,13 +108,13 @@ namespace SquidBot_Sharp.Modules
                 await DatabaseModule.AddPlayerMatchmakingStat(player);
             }
 
-            if(!discordPlayerToGamePlayer.ContainsKey(member))
+            if (!discordPlayerToGamePlayer.ContainsKey(member))
             {
                 discordPlayerToGamePlayer.Add(member, player);
             }
             discordPlayerToGamePlayer[member] = player;
 
-            if(!gamePlayerToDiscordPlayer.ContainsKey(player))
+            if (!gamePlayerToDiscordPlayer.ContainsKey(player))
             {
                 gamePlayerToDiscordPlayer.Add(player, member);
             }
@@ -129,12 +130,12 @@ namespace SquidBot_Sharp.Modules
             {
                 return;
             }
-            
-            if(PlayersInQueue.Contains(member))
+
+            if (PlayersInQueue.Contains(member))
             {
                 var player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
 
-                if(player.Name != member.DisplayName)
+                if (player.Name != member.DisplayName)
                 {
                     //Update player name from nickname
                     player.Name = member.DisplayName;
@@ -170,7 +171,7 @@ namespace SquidBot_Sharp.Modules
         {
             bool readyToStart = PlayersInQueue.Count >= 4;
             string playersNeededText = "(" + (4 - PlayersInQueue.Count) + " Players Required)";
-            if(readyToStart)
+            if (readyToStart)
             {
                 playersNeededText = "(Match Ready)";
             }
@@ -221,7 +222,7 @@ namespace SquidBot_Sharp.Modules
                 team1Name = team1Player1Half + team1Player2Half;
                 team2Name = team2Player1Half + team2Player2Half;
 
-                embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo +") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
+                embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo + ") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
                 embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ")");
             }
             else
@@ -229,7 +230,7 @@ namespace SquidBot_Sharp.Modules
                 for (int i = 0; i < PlayersInQueue.Count; i++)
                 {
                     string nameExtra = "";
-                    if(i == 0)
+                    if (i == 0)
                     {
                         nameExtra = " (Host)";
                     }
@@ -248,7 +249,7 @@ namespace SquidBot_Sharp.Modules
 
             await taskMsg;
 
-            if(readyToStart)
+            if (readyToStart)
             {
                 List<string> playerIds = new List<string>();
                 List<PlayerData> players = new List<PlayerData>();
@@ -296,7 +297,7 @@ namespace SquidBot_Sharp.Modules
 
                     var tempMapNames = await DatabaseModule.GetAllMapNames();
 
-                    if(listoflists[0].Contains(PlayersInQueue[0]))
+                    if (listoflists[0].Contains(PlayersInQueue[0]))
                     {
                         // Complete Random Veto
                         mapNames = tempMapNames;
@@ -311,7 +312,7 @@ namespace SquidBot_Sharp.Modules
                         var playerselectiondict = new Dictionary<DiscordUser, string>();
                         while (true)
                         {
-                            if(playerselectiondict.Count == 4)
+                            if (playerselectiondict.Count == 4)
                             {
                                 break;
                             }
@@ -319,7 +320,7 @@ namespace SquidBot_Sharp.Modules
                             if (PlayersInQueue.Contains(userinput.Result.Author) && !playerselectiondict.Keys.Contains(userinput.Result.Author))
                             {
                                 var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
-                                if(mapselectresult)
+                                if (mapselectresult)
                                 {
                                     playerselectiondict.Add(userinput.Result.Author, userinput.Result.Content);
                                 }
@@ -345,7 +346,7 @@ namespace SquidBot_Sharp.Modules
                             if (userinput.Result.Author == PlayersInQueue[0])
                             {
                                 var boolresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
-                                if(boolresult)
+                                if (boolresult)
                                 {
                                     mapNames = new List<string> { userinput.Result.Content };
                                     break;
@@ -395,12 +396,12 @@ namespace SquidBot_Sharp.Modules
                     SelectingMap = true;
                     mapSelectionResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
 
-                    StartMap:
-                    if(mapSelectionResult == ABORT_RESULT)
+                StartMap:
+                    if (mapSelectionResult == ABORT_RESULT)
                     {
                         break;
                     }
-                    else if(mapSelectionResult != RANDOMIZE_RESULT)
+                    else if (mapSelectionResult != RANDOMIZE_RESULT)
                     {
                         //Start map
                         SelectingMap = false;
@@ -416,9 +417,9 @@ namespace SquidBot_Sharp.Modules
         public static async Task<bool> ChangeNameIfRelevant(DiscordMember member)
         {
             PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
-            if(player.ID != null)
+            if (player.ID != null)
             {
-                if(player.Name != member.DisplayName)
+                if (player.Name != member.DisplayName)
                 {
                     player.Name = member.DisplayName;
 
@@ -445,7 +446,7 @@ namespace SquidBot_Sharp.Modules
 
             var embedmessage = await ctx.RespondAsync(embed: waitingembed);
 
-            if(PRE_SETUP_ONLY)
+            if (PRE_SETUP_ONLY)
             {
                 await Reset();
                 return;
@@ -538,7 +539,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {
-            while(true)
+            while (true)
             {
                 bool currentstatus;
                 currentstatus = await DatabaseModule.HasMatchEnded(matchId);
@@ -575,101 +576,14 @@ namespace SquidBot_Sharp.Modules
 
             await Task.Delay(5000);
 
-            //Update stats and shit
-            PlayerData t1p1Final = team1[0];
-            PlayerData t1p2Final = team1[1];
-            PlayerData t2p1Final = team2[0];
-            PlayerData t2p2Final = team2[1];
-
-            PlayerGameData team1player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p1Final.ID, matchId, team1Name);
-            PlayerGameData team1player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p2Final.ID, matchId, team1Name);
-            PlayerGameData team2player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p1Final.ID, matchId, team2Name);
-            PlayerGameData team2player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p2Final.ID, matchId, team2Name);
-
-            if(team1player1Data.TeamName != team1Name)
-            {
-                string temp = team1Name;
-                team1Name = team2Name;
-                team2Name = temp;
-            }
-
-            PlayerTeamMatch team1Data = new PlayerTeamMatch()
-            {
-                Player1 = t1p1Final,
-                Player1MatchStats = team1player1Data,
-                Player2 = t1p2Final,
-                Player2MatchStats = team1player2Data,
-                RoundsWon = team1player1Data.RoundsWon
-            };
-
-            PlayerTeamMatch team2Data = new PlayerTeamMatch()
-            {
-                Player1 = t2p1Final,
-                Player1MatchStats = team2player1Data,
-                Player2 = t2p2Final,
-                Player2MatchStats = team2player2Data,
-                RoundsWon = team2player1Data.RoundsWon
-            };
-
-
-            float t1p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p1Final, team1Data, team2Data);
-            float t1p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p2Final, team1Data, team2Data);
-            float t2p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p1Final, team2Data, team1Data);
-            float t2p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p2Final, team2Data, team1Data);
-
-            int t1p1EloDiff = (int)(t1p1Elo - t1p1Final.CurrentElo);
-            int t1p2EloDiff = (int)(t1p2Elo - t1p2Final.CurrentElo);
-            int t2p1EloDiff = (int)(t2p1Elo - t2p1Final.CurrentElo);
-            int t2p2EloDiff = (int)(t2p2Elo - t2p2Final.CurrentElo);
-
-            t1p1Final.CurrentElo = t1p1Elo;
-            t1p2Final.CurrentElo = t1p2Elo;
-            t2p1Final.CurrentElo = t2p1Elo;
-            t2p2Final.CurrentElo = t2p2Elo;
-
-            t1p1Final.UpdateWithGameData(team1player1Data);
-            t1p2Final.UpdateWithGameData(team1player2Data);
-            t2p1Final.UpdateWithGameData(team2player1Data);
-            t2p2Final.UpdateWithGameData(team2player2Data);
-
-            await DatabaseModule.DeletePlayerStats(t1p1Final.ID);
-            await DatabaseModule.DeletePlayerStats(t1p2Final.ID);
-            await DatabaseModule.DeletePlayerStats(t2p1Final.ID);
-            await DatabaseModule.DeletePlayerStats(t2p2Final.ID);
-
-            await DatabaseModule.AddPlayerMatchmakingStat(t2p1Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t1p2Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t1p1Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t2p2Final);
-
-            embed = new DiscordEmbedBuilder
-            {
-                Color = new DiscordColor(0x3277a8),
-                Title = "CS:GO Match Finished: " + (team1player1Data.WonGame ? team1Name : team2Name) + " Won! (" + (team1player1Data.WonGame ? team1player1Data.RoundsWon : team2player1Data.RoundsWon) + " / " + (team1player1Data.WonGame ? team1player1Data.RoundsLost : team2player1Data.RoundsLost) + ")",
-                Timestamp = DateTime.UtcNow,
-            };
-
-            string diffVal = "";
-
-
-            diffVal = t1p1EloDiff > 0 ? "+" : "";
-            embed.AddField(t1p1Final.Name + " Elo: " + (int)(t1p1Final.CurrentElo) + " (" + diffVal + t1p1EloDiff + ")", "Kills: " + team1player1Data.KillCount + " | Assists: " + team1player1Data.AssistCount + " | Deaths: " + team1player1Data.DeathCount);
-
-            diffVal = t1p2EloDiff > 0 ? "+" : "";
-            embed.AddField(t1p2Final.Name + " Elo: " + (int)(t1p2Final.CurrentElo) + " (" + diffVal + t1p2EloDiff + ")", "Kills: " + team1player2Data.KillCount + " | Assists: " + team1player2Data.AssistCount + " | Deaths: " + team1player2Data.DeathCount);
-
-            diffVal = t2p1EloDiff > 0 ? "+" : "";
-            embed.AddField(t2p1Final.Name + " Elo: " + (int)(t2p1Final.CurrentElo) + " (" + diffVal + t2p1EloDiff + ")", "Kills: " + team2player1Data.KillCount + " | Assists: " + team2player1Data.AssistCount + " | Deaths: " + team2player1Data.DeathCount);
-
-            diffVal = t2p2EloDiff > 0 ? "+" : "";
-            embed.AddField(t2p2Final.Name + " Elo: " + (int)(t2p2Final.CurrentElo) + " (" + diffVal + t2p2EloDiff + ")", "Kills: " + team2player2Data.KillCount + " | Assists: " + team2player2Data.AssistCount + " | Deaths: " + team2player2Data.DeathCount);
+            var statsembed = await UpdateStatsPostGame(ctx, team1, team2, matchId, team1Name, team2Name);
 
             if (PreviousMessage != null)
             {
                 await PreviousMessage.DeleteAsync();
             }
 
-            taskMsg = ctx.RespondAsync(embed: embed);
+            taskMsg = ctx.RespondAsync(embed: statsembed);
             PreviousMessage = null;
 
             await taskMsg;
@@ -683,9 +597,9 @@ namespace SquidBot_Sharp.Modules
             int lastMatchId = await DatabaseModule.GetLastMatchID();
 
             int currentMatchId = 1;
-            while(currentMatchId <= lastMatchId)
+            while (currentMatchId <= lastMatchId)
             {
-                if(await DatabaseModule.HasMatchEnded(currentMatchId))
+                if (await DatabaseModule.HasMatchEnded(currentMatchId))
                 {
                     await ctx.RespondAsync("Starting evaluation of match id: " + currentMatchId);
                     List<string> playerIdsTeam1 = await DatabaseModule.GetPlayersFromMatch(currentMatchId, 1);
@@ -716,7 +630,7 @@ namespace SquidBot_Sharp.Modules
 
         private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
         {
-            if(CaptainPick)
+            if (CaptainPick)
             {
                 PreviousMessage = null;
                 PlayerData captain = players[0];
@@ -814,12 +728,12 @@ namespace SquidBot_Sharp.Modules
             }
 
             Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
-            PreviousMessage = taskMsg.Result; 
+            PreviousMessage = taskMsg.Result;
 
             await taskMsg;
             for (int i = 0; i < mapNames.Count; i++)
             {
-                if(PreviousMessage == null)
+                if (PreviousMessage == null)
                 {
                     return ABORT_RESULT;
                 }
@@ -833,9 +747,9 @@ namespace SquidBot_Sharp.Modules
 
             int chosen = -1;
             bool waiting = true;
-            while(waiting)
+            while (waiting)
             {
-                if(!SelectingMap)
+                if (!SelectingMap)
                 {
                     break;
                 }
@@ -845,17 +759,17 @@ namespace SquidBot_Sharp.Modules
                     return ABORT_RESULT;
                 }
                 var randomizeReacts = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
-                if(randomizeReacts.Count >= NEEDED_FOR_RANDOMIZE + 1)
+                if (randomizeReacts.Count >= NEEDED_FOR_RANDOMIZE + 1)
                 {
                     int validReacts = 0;
                     for (int i = 0; i < randomizeReacts.Count; i++)
                     {
-                        if(playerIds.Contains(randomizeReacts[i].Id.ToString()))
+                        if (playerIds.Contains(randomizeReacts[i].Id.ToString()))
                         {
                             validReacts++;
                         }
                     }
-                    if(validReacts >= NEEDED_FOR_RANDOMIZE)
+                    if (validReacts >= NEEDED_FOR_RANDOMIZE)
                     {
                         return RANDOMIZE_RESULT;
                     }
@@ -872,7 +786,7 @@ namespace SquidBot_Sharp.Modules
                         for (int j = 0; j < reacteds.Count; j++)
                         {
                             // COMMENTING THIS OUT MAKES THE BOT LET ANYONE VETO
-                            if(reacteds[j].Id.ToString() == captain.ID)
+                            if (reacteds[j].Id.ToString() == captain.ID)
                             {
                                 waiting = false;
                                 chosen = i;
@@ -882,7 +796,7 @@ namespace SquidBot_Sharp.Modules
                 }
                 await Task.Delay(1000);
             }
-            if(SelectingMap)
+            if (SelectingMap)
             {
                 mapNames.RemoveAt(chosen);
 
@@ -902,7 +816,99 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        private static Random rng = new Random();
+        public static async Task<DiscordEmbed> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name)
+        {
+            //Update stats and shit
+            PlayerData t1p1Final = team1[0];
+            PlayerData t1p2Final = team1[1];
+            PlayerData t2p1Final = team2[0];
+            PlayerData t2p2Final = team2[1];
+
+            PlayerGameData team1player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p1Final.ID, matchId, team1Name);
+            PlayerGameData team1player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p2Final.ID, matchId, team1Name);
+            PlayerGameData team2player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p1Final.ID, matchId, team2Name);
+            PlayerGameData team2player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p2Final.ID, matchId, team2Name);
+
+            if (team1player1Data.TeamName != team1Name)
+            {
+                string temp = team1Name;
+                team1Name = team2Name;
+                team2Name = temp;
+            }
+
+            PlayerTeamMatch team1Data = new PlayerTeamMatch()
+            {
+                Player1 = t1p1Final,
+                Player1MatchStats = team1player1Data,
+                Player2 = t1p2Final,
+                Player2MatchStats = team1player2Data,
+                RoundsWon = team1player1Data.RoundsWon
+            };
+
+            PlayerTeamMatch team2Data = new PlayerTeamMatch()
+            {
+                Player1 = t2p1Final,
+                Player1MatchStats = team2player1Data,
+                Player2 = t2p2Final,
+                Player2MatchStats = team2player2Data,
+                RoundsWon = team2player1Data.RoundsWon
+            };
+
+
+            float t1p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p1Final, team1Data, team2Data);
+            float t1p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p2Final, team1Data, team2Data);
+            float t2p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p1Final, team2Data, team1Data);
+            float t2p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p2Final, team2Data, team1Data);
+
+            int t1p1EloDiff = (int)(t1p1Elo - t1p1Final.CurrentElo);
+            int t1p2EloDiff = (int)(t1p2Elo - t1p2Final.CurrentElo);
+            int t2p1EloDiff = (int)(t2p1Elo - t2p1Final.CurrentElo);
+            int t2p2EloDiff = (int)(t2p2Elo - t2p2Final.CurrentElo);
+
+            t1p1Final.CurrentElo = t1p1Elo;
+            t1p2Final.CurrentElo = t1p2Elo;
+            t2p1Final.CurrentElo = t2p1Elo;
+            t2p2Final.CurrentElo = t2p2Elo;
+
+            t1p1Final.UpdateWithGameData(team1player1Data);
+            t1p2Final.UpdateWithGameData(team1player2Data);
+            t2p1Final.UpdateWithGameData(team2player1Data);
+            t2p2Final.UpdateWithGameData(team2player2Data);
+
+            await DatabaseModule.DeletePlayerStats(t1p1Final.ID);
+            await DatabaseModule.DeletePlayerStats(t1p2Final.ID);
+            await DatabaseModule.DeletePlayerStats(t2p1Final.ID);
+            await DatabaseModule.DeletePlayerStats(t2p2Final.ID);
+
+            await DatabaseModule.AddPlayerMatchmakingStat(t2p1Final);
+            await DatabaseModule.AddPlayerMatchmakingStat(t1p2Final);
+            await DatabaseModule.AddPlayerMatchmakingStat(t1p1Final);
+            await DatabaseModule.AddPlayerMatchmakingStat(t2p2Final);
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Color = new DiscordColor(0x3277a8),
+                Title = "CS:GO Match Finished: " + (team1player1Data.WonGame ? team1Name : team2Name) + " Won! (" + (team1player1Data.WonGame ? team1player1Data.RoundsWon : team2player1Data.RoundsWon) + " / " + (team1player1Data.WonGame ? team1player1Data.RoundsLost : team2player1Data.RoundsLost) + ")",
+                Timestamp = DateTime.UtcNow,
+            };
+
+            string diffVal = "";
+
+
+            diffVal = t1p1EloDiff > 0 ? "+" : "";
+            embed.AddField(t1p1Final.Name + " Elo: " + (int)(t1p1Final.CurrentElo) + " (" + diffVal + t1p1EloDiff + ")", "Kills: " + team1player1Data.KillCount + " | Assists: " + team1player1Data.AssistCount + " | Deaths: " + team1player1Data.DeathCount);
+
+            diffVal = t1p2EloDiff > 0 ? "+" : "";
+            embed.AddField(t1p2Final.Name + " Elo: " + (int)(t1p2Final.CurrentElo) + " (" + diffVal + t1p2EloDiff + ")", "Kills: " + team1player2Data.KillCount + " | Assists: " + team1player2Data.AssistCount + " | Deaths: " + team1player2Data.DeathCount);
+
+            diffVal = t2p1EloDiff > 0 ? "+" : "";
+            embed.AddField(t2p1Final.Name + " Elo: " + (int)(t2p1Final.CurrentElo) + " (" + diffVal + t2p1EloDiff + ")", "Kills: " + team2player1Data.KillCount + " | Assists: " + team2player1Data.AssistCount + " | Deaths: " + team2player1Data.DeathCount);
+
+            diffVal = t2p2EloDiff > 0 ? "+" : "";
+            embed.AddField(t2p2Final.Name + " Elo: " + (int)(t2p2Final.CurrentElo) + " (" + diffVal + t2p2EloDiff + ")", "Kills: " + team2player2Data.KillCount + " | Assists: " + team2player2Data.AssistCount + " | Deaths: " + team2player2Data.DeathCount);
+
+            return embed;
+        }
 
         public static void Shuffle<T>(this IList<T> list)
         {
@@ -917,221 +923,4 @@ namespace SquidBot_Sharp.Modules
             }
         }
     }
-
-
-    public static class Match
-    {
-        private const int STARTING_ELO = 1000;
-
-        public static Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>> GetMatchup(PlayerData[] dataEntries)
-        {
-            if (dataEntries.Length != 4)
-            {
-                Console.WriteLine("ERROR: Incorrect number of player entries sent");
-                return null;
-            }
-
-            Array.Sort(dataEntries, (x, y) => { return x.CurrentElo.CompareTo(y.CurrentElo); });
-
-            return new Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>(
-                new Tuple<PlayerData, PlayerData>(dataEntries[0], dataEntries[3]),
-                new Tuple<PlayerData, PlayerData>(dataEntries[1], dataEntries[2])
-                );
-        }
-
-        public static float GetUpdatedPlayerEloWithMatchData(PlayerData player, PlayerTeamMatch friendlyTeam, PlayerTeamMatch enemyTeam)
-        {
-            const float ELO_SCALING_FACTOR = 400;
-
-            const float BEGINNER_GAME_COUNT = 15;
-
-            float allGamesPlayed = player.TotalGames - 1;
-            float scalingRatio = 1 - MathF.Min(0.75f, allGamesPlayed / BEGINNER_GAME_COUNT);
-
-            float GAME_WIN_SCALING_FACTOR = 20 * scalingRatio;
-            float ROUND_SCALING_FACTOR = 10 * scalingRatio;
-            float KILL_SCALING_FACTOR = 5 * scalingRatio;
-            float ASSIST_SCALING_FACTOR = 1;
-            float DEATH_SCALING_FACTOR = 4;
-            float HEADSHOT_SCALING_FACTOR = 2;
-
-            const float WIN_REDUCE = 1.5f;
-            const float ROUND_REDUCE = 0.5f;
-            const float KILL_REDUCE = 0.4f;
-            const float ASSIST_REDUCE = 0.2f;
-            const float DEATH_REDUCE = 0.5f;
-            const float HEADSHOT_REDUCE = 0.2f;
-
-            float currentPlayerElo = player.CurrentElo;
-            float friendlyElo = friendlyTeam.CombinedElo / 2f;
-            float enemyElo = enemyTeam.CombinedElo / 2f;
-            float roundsWon = friendlyTeam.RoundsWon;
-            float roundsLost = enemyTeam.RoundsWon;
-            int killCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.KillCount : friendlyTeam.Player2MatchStats.KillCount;
-            int assistCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.AssistCount : friendlyTeam.Player2MatchStats.AssistCount;
-            int deathCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.DeathCount : friendlyTeam.Player2MatchStats.DeathCount;
-            int headshotCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.Headshots : friendlyTeam.Player2MatchStats.Headshots;
-
-            float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - friendlyElo) / ELO_SCALING_FACTOR)));
-
-            float winElo = 0;
-            winElo += GAME_WIN_SCALING_FACTOR * ((roundsWon > roundsLost ? 1 : 0) - expected);
-            winElo *= WIN_REDUCE;
-
-            float roundElo = 0;
-            for (int i = 0; i < roundsWon; i++)
-            {
-                roundElo += ROUND_SCALING_FACTOR * (1 - expected);
-            }
-            for (int i = 0; i < roundsLost; i++)
-            {
-                roundElo += ROUND_SCALING_FACTOR * (0 - expected);
-            }
-
-            roundElo *= ROUND_REDUCE;
-
-            float killElo = 0;
-            for (int i = 0; i < killCount; i++)
-            {
-                killElo += KILL_SCALING_FACTOR * (1 - expected);
-            }
-            killElo *= KILL_REDUCE;
-
-            float assistElo = 0;
-            for (int i = 0; i < assistCount; i++)
-            {
-                assistElo += ASSIST_SCALING_FACTOR * (1 - expected);
-            }
-            assistElo *= ASSIST_REDUCE;
-
-            float deathElo = 0;
-            for (int i = 0; i < deathCount; i++)
-            {
-                deathElo += DEATH_SCALING_FACTOR * (0 - expected);
-            }
-            deathElo *= DEATH_REDUCE;
-
-            float headshotElo = 0;
-            for (int i = 0; i < headshotCount; i++)
-            {
-                headshotElo += HEADSHOT_SCALING_FACTOR * (1 - expected);
-            }
-            headshotElo *= HEADSHOT_REDUCE;
-
-            float finalResult = currentPlayerElo
-                + roundElo
-                + winElo
-                + killElo
-                + assistElo
-                + deathElo
-                + headshotElo;
-            return finalResult;
-        }
-    }
-
-    #region Player/Match Data
-
-    public class PlayerData
-    {
-        //Cosmetic
-        public string Name;
-
-        //Data
-        public string ID;
-        public float CurrentElo;
-
-        public int TotalGamesWon;
-        public int TotalGamesLost;
-        public int TotalRoundsWon;
-        public int TotalRoundsLost;
-        public int TotalKillCount;
-        public int TotalAssistCount;
-        public int TotalDeathCount;
-        public int TotalHeadshotCount;
-
-        public int TotalGames
-        {
-            get
-            {
-                return TotalGamesWon + TotalGamesLost;
-            }
-        }
-
-        public void UpdateWithGameData(PlayerGameData gameData)
-        {
-            if(gameData.WonGame)
-            {
-                TotalGamesWon++;
-            }
-            else
-            {
-                TotalGamesLost++;
-            }
-            TotalRoundsWon += gameData.RoundsWon;
-            TotalRoundsLost += gameData.RoundsLost;
-            TotalKillCount += gameData.KillCount;
-            TotalAssistCount += gameData.AssistCount;
-            TotalDeathCount += gameData.DeathCount;
-            TotalHeadshotCount += gameData.Headshots;
-        }
-    }
-
-    public class PlayerGameData
-    {
-        public string TeamName;
-        public int TeamNumber;
-
-        public int RoundsWon;
-        public int RoundsLost;
-
-        public int KillCount;
-        public int AssistCount;
-        public int DeathCount;
-        public int Headshots;
-        //public int MVPs;
-
-        public bool WonGame;
-
-        public PlayerGameData() { }
-        public PlayerGameData(PlayerGameData one, PlayerGameData two)
-        {
-            KillCount = one.KillCount + two.KillCount;
-            AssistCount = one.AssistCount + two.AssistCount;
-            DeathCount = one.DeathCount + two.DeathCount;
-            Headshots = one.Headshots + two.Headshots;
-            //MVPs = one.MVPs + two.MVPs;
-
-            WonGame = one.WonGame;
-        }
-    }
-
-    public struct PlayerTeamMatch
-    {
-        public int RoundsWon;
-
-        public PlayerData Player1;
-        public PlayerData Player2;
-
-        public PlayerGameData Player1MatchStats;
-        public PlayerGameData Player2MatchStats;
-
-        public PlayerGameData CombinedMatchStats { get { return new PlayerGameData(Player1MatchStats, Player2MatchStats); } }
-        public float CombinedElo { get { return Player1.CurrentElo + Player2.CurrentElo; } }
-
-        public float AverageRoundsWon
-        {
-            get
-            {
-                return (float)(Player1.TotalRoundsWon + Player2.TotalRoundsWon) / (float)(Player1.TotalGames + Player2.TotalGames);
-            }
-        }
-        public float AverageRoundsLost
-        {
-            get
-            {
-                return (float)(Player1.TotalRoundsLost + Player2.TotalRoundsLost) / (float)(Player1.TotalGames + Player2.TotalGames);
-            }
-        }
-    }
-    #endregion
 }
