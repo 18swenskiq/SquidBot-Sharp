@@ -1,6 +1,7 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using Microsoft.VisualBasic.CompilerServices;
 using Newtonsoft.Json;
 using SquidBot_Sharp.Utilities;
 using SteamKit2.GC.Artifact.Internal;
@@ -16,6 +17,7 @@ namespace SquidBot_Sharp.Modules
 {
     public static class MatchmakingModule
     {
+        private enum MapSelectionType { RandomPoolVeto, AllPick, LeaderPick, CompletelyRandomPick };
         private static string[] numbersWritten = new string[] { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
         private const string randomizeMapEmoji = ":game_die:";
         private const string RANDOMIZE_RESULT = "RANDOMIZE";
@@ -254,142 +256,11 @@ namespace SquidBot_Sharp.Modules
                 await Task.Delay(2000);
                 PreviousMessage = null;
 
-                // Add new methods for map selection
-                var mapselectmodeembed = new DiscordEmbedBuilder
-                {
-                    Color = new DiscordColor(0x3277a8),
-                    Title = "Map Veto Mode Selector",
-                    Timestamp = DateTime.UtcNow,
-                };
-                mapselectmodeembed.AddField("Random Pool Veto", ":one:");
-                mapselectmodeembed.AddField("All Pick/Random Selection", ":two:");
-                mapselectmodeembed.AddField("Queue Leader Pick", ":three:");
-                mapselectmodeembed.AddField("MechaSquidski's Pick", ":four:");
-                mapselectmodeembed.AddField("Queue Leader: " + PlayersInQueue[0].Nickname, "Select your preferred option for map selection!");
-
-
-                Task<DiscordMessage> taskMapMsg = ctx.RespondAsync(embed: mapselectmodeembed);
-                PreviousMessage = taskMapMsg.Result;
-
-                SelectingMap = true;
-                await taskMapMsg;
-                for(int i = 1; i <= 4; i++)
-                {
-                    await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, $":{numbersWritten[i]}:"));
-                }
-
-                List<string> mapNames;
-
-                while (true)
-                {
-                    var listoflists = new List<IReadOnlyList<DiscordUser>>();
-                    for (int i = 1; i <= 4; i++)
-                    {
-                        listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, $":{numbersWritten[i]}:")));
-                    }
-
-                    var tempMapNames = await DatabaseModule.GetAllMapNames();
-
-                    if (listoflists[0].Contains(PlayersInQueue[0]))
-                    {
-                        // Complete Random Veto
-                        mapNames = tempMapNames;
-                        break;
-                    }
-                    if (listoflists[1].Contains(PlayersInQueue[0]))
-                    {
-
-                        // BUG THIS
-                        await ctx.RespondAsync($"All players, please type your map choice!");
-                        var interactivity = ctx.Client.GetInteractivity();
-                        var playerselectiondict = new Dictionary<DiscordUser, string>();
-                        while (true)
-                        {
-                            if (playerselectiondict.Count == 4)
-                            {
-                                break;
-                            }
-                            var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
-                            if (PlayersInQueue.Contains(userinput.Result.Author) && !playerselectiondict.Keys.Contains(userinput.Result.Author))
-                            {
-                                var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
-                                if (mapselectresult)
-                                {
-                                    playerselectiondict.Add(userinput.Result.Author, userinput.Result.Content);
-                                }
-                                else
-                                {
-                                    await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
-                                }
-                            }
-                        }
-                        var mapselectindex = rng.Next(0, 3);
-                        mapNames = new List<string> { playerselectiondict.ElementAt(mapselectindex).Value };
-                        break;
-
-                    }
-                    if (listoflists[2].Contains(PlayersInQueue[0]))
-                    {
-                        // Queue Leader Pick
-                        await ctx.RespondAsync($"{PlayersInQueue[0].Nickname}, please type the name of a map to play!");
-                        var interactivity = ctx.Client.GetInteractivity();
-                        while (true)
-                        {
-                            var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
-                            if (userinput.Result.Author == PlayersInQueue[0])
-                            {
-                                var boolresult = GeneralUtil.ListContainsCaseInsensitive(tempMapNames, userinput.Result.Content);
-                                if (boolresult)
-                                {
-                                    mapNames = new List<string> { userinput.Result.Content };
-                                    break;
-                                }
-                                else
-                                {
-                                    await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
-                                }
-
-                            }
-                        }
-                        break;
-
-                    }
-                    if (listoflists[3].Contains(PlayersInQueue[0]))
-                    {
-                        // MechaSquidski pick
-                        mapNames = new List<string>
-                        {
-                            tempMapNames[rng.Next(tempMapNames.Count)]
-                        };
-                        break;
-                    }
-                }
-
-                await PreviousMessage.DeleteAsync();
-                PreviousMessage = null;
-
                 do
                 {
-                    string mapSelectionResult = "";
-
-                    // If we already know what map we want, just skip the map veto part
-                    if (mapNames.Count == 1)
-                    {
-                        mapSelectionResult = mapNames[0];
-                        goto StartMap;
-                    }
-
-                    List<string> mapSelection = new List<string>();
-                    Shuffle(mapNames);
-                    for (int i = 0; i < MAP_COUNT; i++)
-                    {
-                        mapSelection.Add(mapNames[i]);
-                    }
-
                     SelectingMap = true;
-                    mapSelectionResult = await StartMapSelection(ctx, mapSelection, captain, enemyCaptain, playerIds);
+                    string mapSelectionResult = await DetermineMapSelectionType(ctx, captain, enemyCaptain, playerIds);
 
-                StartMap:
                     if (mapSelectionResult == ABORT_RESULT)
                     {
                         break;
@@ -408,24 +279,332 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        public static async Task<bool> ChangeNameIfRelevant(DiscordMember member)
+        #region Map Selection
+
+        private static async Task<string> DetermineMapSelectionType(CommandContext ctx, PlayerData captain, PlayerData enemyCaptain, List<string> playerIds)
         {
-            PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
-            if (player.ID != null)
+            // Add new methods for map selection
+            var mapselectmodeembed = new DiscordEmbedBuilder
             {
-                if (player.Name != member.DisplayName)
+                Color = new DiscordColor(0x3277a8),
+                Title = "Map Veto Mode Selector",
+                Timestamp = DateTime.UtcNow,
+            };
+
+            DiscordMember userCaptain = PlayersInQueue[0];
+
+            int mapSelectionTypesLength = System.Enum.GetValues(typeof(MapSelectionType)).Length;
+            for (int i = 0; i < mapSelectionTypesLength; i++)
+            {
+                MapSelectionType type = (MapSelectionType)i;
+                mapselectmodeembed.AddField(type.GetDialogueDisplay(), type.GetEmoteRepresentation());
+            }
+
+            mapselectmodeembed.AddField("Queue Leader: " + userCaptain.DisplayName, "Select your preferred option for map selection!");
+
+
+            Task<DiscordMessage> taskMapMsg = ctx.RespondAsync(embed: mapselectmodeembed);
+            PreviousMessage = taskMapMsg.Result;
+
+            SelectingMap = true;
+            await taskMapMsg;
+            for (int i = 0; i < mapSelectionTypesLength; i++)
+            {
+                MapSelectionType type = (MapSelectionType)i;
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, type.GetEmoteRepresentation()));
+            }
+
+            var allMapNames = await DatabaseModule.GetAllMapNames();
+
+            MapSelectionType? confirmedType = null;
+
+            while (true)
+            {
+                var listoflists = new List<IReadOnlyList<DiscordUser>>();
+                for (int i = 0; i < mapSelectionTypesLength; i++)
                 {
-                    player.Name = member.DisplayName;
+                    MapSelectionType type = (MapSelectionType)i;
+                    listoflists.Add(await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, type.GetEmoteRepresentation())));
+                }
 
-                    await DatabaseModule.DeletePlayerStats(player.ID);
-                    await DatabaseModule.AddPlayerMatchmakingStat(player);
+                for (int i = 0; i < mapSelectionTypesLength; i++)
+                {
+                    MapSelectionType type = (MapSelectionType)i;
+                    if (listoflists[i].Contains(userCaptain))
+                    {
+                        confirmedType = type;
+                    }
+                }
 
-                    return true;
+                if (confirmedType != null)
+                {
+                    break;
                 }
             }
 
-            return false;
+            switch (confirmedType)
+            {
+                case MapSelectionType.RandomPoolVeto:
+                    List<string> mapOptions = new List<string>();
+                    Shuffle(mapOptions);
+                    mapOptions = new List<string>();
+                    for (int i = 0; i < MAP_COUNT; i++)
+                    {
+                        mapOptions.Add(mapOptions[i]);
+                    }
+
+                    return await StartRandomVetoMapSelection(ctx, mapOptions, captain, enemyCaptain, playerIds);
+                case MapSelectionType.AllPick:
+                    return await StartAllPickMapSelection(ctx, allMapNames);
+                case MapSelectionType.LeaderPick:
+                    return await StartLeaderPickMapSelection(ctx, allMapNames);
+                case MapSelectionType.CompletelyRandomPick:
+                    return await StartRandomMapSelection(ctx, allMapNames);
+            }
+
+            await PreviousMessage.DeleteAsync();
+            PreviousMessage = null;
+
+            return ABORT_RESULT;
         }
+
+        public static async Task<string> StartRandomVetoMapSelection(CommandContext ctx, List<string> mapNames, PlayerData captain, PlayerData enemyCaptain, List<string> playerIds)
+        {
+            var embed = new DiscordEmbedBuilder
+            {
+                Color = new DiscordColor(0x3277a8),
+                Title = "Map Selector",
+                Timestamp = DateTime.UtcNow,
+            };
+
+            for (int i = 0; i < mapNames.Count; i++)
+            {
+                embed.AddField(mapNames[i], $":{numbersWritten[i + 1]}:");
+            }
+            embed.AddField("Current Captain: " + captain.Name, "Select the map to remove it from the list of options");
+
+            if (PreviousMessage != null)
+            {
+                await PreviousMessage.DeleteAsync();
+            }
+
+            Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
+            PreviousMessage = taskMsg.Result;
+
+            await taskMsg;
+            for (int i = 0; i < mapNames.Count; i++)
+            {
+                if (PreviousMessage == null)
+                {
+                    return ABORT_RESULT;
+                }
+                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
+            }
+            if (PreviousMessage == null)
+            {
+                return ABORT_RESULT;
+            }
+            await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
+
+            int chosen = -1;
+            bool waiting = true;
+            while (waiting)
+            {
+                if (!SelectingMap)
+                {
+                    break;
+                }
+
+                if (PreviousMessage == null)
+                {
+                    return ABORT_RESULT;
+                }
+                var randomizeReacts = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
+                if (randomizeReacts.Count >= NEEDED_FOR_RANDOMIZE + 1)
+                {
+                    int validReacts = 0;
+                    for (int i = 0; i < randomizeReacts.Count; i++)
+                    {
+                        if (playerIds.Contains(randomizeReacts[i].Id.ToString()))
+                        {
+                            validReacts++;
+                        }
+                    }
+                    if (validReacts >= NEEDED_FOR_RANDOMIZE)
+                    {
+                        return RANDOMIZE_RESULT;
+                    }
+                }
+                for (int i = 0; i < mapNames.Count; i++)
+                {
+                    if (PreviousMessage == null)
+                    {
+                        return ABORT_RESULT;
+                    }
+                    var reacteds = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
+                    if (reacteds.Count > 1)
+                    {
+                        for (int j = 0; j < reacteds.Count; j++)
+                        {
+                            // COMMENTING THIS OUT MAKES THE BOT LET ANYONE VETO
+                            if (reacteds[j].Id.ToString() == captain.ID)
+                            {
+                                waiting = false;
+                                chosen = i;
+                            }
+                        }
+                    }
+                }
+                await Task.Delay(1000);
+            }
+            if (SelectingMap)
+            {
+                mapNames.RemoveAt(chosen);
+
+                if (mapNames.Count == 1)
+                {
+                    await PreviousMessage.DeleteAsync();
+                    return mapNames[0];
+                }
+                else
+                {
+                    return await StartRandomVetoMapSelection(ctx, mapNames, enemyCaptain, captain, playerIds);
+                }
+            }
+            else
+            {
+                return ABORT_RESULT;
+            }
+        }
+
+        private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> allMapNames)
+        {
+            if (PreviousMessage != null)
+            {
+                await PreviousMessage.DeleteAsync();
+            }
+            PreviousMessage = null;
+
+            var interactivity = ctx.Client.GetInteractivity();
+            var playerSelections = new Dictionary<DiscordUser, string>();
+            bool updateEmbed = true;
+            while (true)
+            {
+                if(!SelectingMap)
+                {
+                    return ABORT_RESULT;
+                }
+
+                if (playerSelections.Count == 4)
+                {
+                    break;
+                }
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Color = new DiscordColor(0x3277a8),
+                    Title = "Map Selector",
+                    Timestamp = DateTime.UtcNow,
+                    Description = "Please type your map choice! "
+                };
+
+                if (updateEmbed)
+                {
+                    updateEmbed = false;
+
+                    //Purely visual for who has/hasn't selected a map yet.
+                    embed.Description = "Please type your map choice! Waiting for: ";
+                    for (int i = 0; i < PlayersInQueue.Count; i++)
+                    {
+                        bool contained = false;
+                        foreach (DiscordUser user in playerSelections.Keys)
+                        {
+                            if (user.Id == PlayersInQueue[i].Id)
+                            {
+                                contained = true;
+                                break;
+                            }
+                        }
+                        if (!contained)
+                        {
+                            embed.Description += PlayersInQueue[i].DisplayName + ", ";
+                        }
+                    }
+
+                    if (embed.Description.Contains(","))
+                    {
+                        embed.Description = embed.Description.Substring(0, embed.Description.Length - 2);
+                    }
+
+                    if(playerSelections.Count > 0)
+                    {
+                        embed.Description += "\n\nCurrent Maps:";
+                    }
+                    foreach (var user in playerSelections.Keys)
+                    {
+                        embed.AddField(playerSelections[user], "Chosen by " + user.Username);
+                    }
+
+                    Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
+                    if (PreviousMessage != null)
+                    {
+                        await PreviousMessage.DeleteAsync();
+                    }
+                    PreviousMessage = taskMsg.Result;
+
+                    await taskMsg;
+                }
+
+                var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
+                if (PlayersInQueue.Contains(userinput.Result.Author) && !playerSelections.Keys.Contains(userinput.Result.Author))
+                {
+                    var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(allMapNames, userinput.Result.Content);
+                    if (mapselectresult)
+                    {
+                        playerSelections.Add(userinput.Result.Author, userinput.Result.Content);
+                        updateEmbed = true;
+                    }
+                    else
+                    {
+                        await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
+                    }
+                }
+            }
+
+            var mapselectindex = rng.Next(0, 4);
+            return playerSelections.ElementAt(mapselectindex).Value;
+        }
+
+        private static async Task<string> StartLeaderPickMapSelection(CommandContext ctx, List<string> allMapNames)
+        {
+            await ctx.RespondAsync($"{PlayersInQueue[0].Nickname}, please type the name of a map to play!");
+            var interactivity = ctx.Client.GetInteractivity();
+            while (true)
+            {
+                var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
+                if (userinput.Result.Author == PlayersInQueue[0])
+                {
+                    var boolresult = GeneralUtil.ListContainsCaseInsensitive(allMapNames, userinput.Result.Content);
+                    if (boolresult)
+                    {
+                        return userinput.Result.Content;
+                    }
+                    else
+                    {
+                        await ctx.RespondAsync($"{userinput.Result.Author.Username}, your map selection was not found. Please try another name.");
+                    }
+
+                }
+            }
+        }
+
+        private static async Task<string> StartRandomMapSelection(CommandContext ctx, List<string> allMapNames)
+        {
+            var mapselectindex = rng.Next(0, allMapNames.Count);
+            return allMapNames.ElementAt(mapselectindex);
+        }
+
+        #endregion
 
         private static async Task StartMap(CommandContext ctx, string mapID, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {
@@ -702,115 +881,6 @@ namespace SquidBot_Sharp.Modules
             return otherPlayers[chosen];
         }
 
-        public static async Task<string> StartMapSelection(CommandContext ctx, List<string> mapNames, PlayerData captain, PlayerData enemyCaptain, List<string> playerIds)
-        {
-            var embed = new DiscordEmbedBuilder
-            {
-                Color = new DiscordColor(0x3277a8),
-                Title = "Map Selector",
-                Timestamp = DateTime.UtcNow,
-            };
-
-            for (int i = 0; i < mapNames.Count; i++)
-            {
-                embed.AddField(mapNames[i], $":{numbersWritten[i + 1]}:");
-            }
-            embed.AddField("Current Captain: " + captain.Name, "Select the map to remove it from the list of options");
-
-            if (PreviousMessage != null)
-            {
-                await PreviousMessage.DeleteAsync();
-            }
-
-            Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
-            PreviousMessage = taskMsg.Result;
-
-            await taskMsg;
-            for (int i = 0; i < mapNames.Count; i++)
-            {
-                if (PreviousMessage == null)
-                {
-                    return ABORT_RESULT;
-                }
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
-            }
-            if (PreviousMessage == null)
-            {
-                return ABORT_RESULT;
-            }
-            await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
-
-            int chosen = -1;
-            bool waiting = true;
-            while (waiting)
-            {
-                if (!SelectingMap)
-                {
-                    break;
-                }
-
-                if (PreviousMessage == null)
-                {
-                    return ABORT_RESULT;
-                }
-                var randomizeReacts = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, randomizeMapEmoji));
-                if (randomizeReacts.Count >= NEEDED_FOR_RANDOMIZE + 1)
-                {
-                    int validReacts = 0;
-                    for (int i = 0; i < randomizeReacts.Count; i++)
-                    {
-                        if (playerIds.Contains(randomizeReacts[i].Id.ToString()))
-                        {
-                            validReacts++;
-                        }
-                    }
-                    if (validReacts >= NEEDED_FOR_RANDOMIZE)
-                    {
-                        return RANDOMIZE_RESULT;
-                    }
-                }
-                for (int i = 0; i < mapNames.Count; i++)
-                {
-                    if (PreviousMessage == null)
-                    {
-                        return ABORT_RESULT;
-                    }
-                    var reacteds = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
-                    if (reacteds.Count > 1)
-                    {
-                        for (int j = 0; j < reacteds.Count; j++)
-                        {
-                            // COMMENTING THIS OUT MAKES THE BOT LET ANYONE VETO
-                            if (reacteds[j].Id.ToString() == captain.ID)
-                            {
-                                waiting = false;
-                                chosen = i;
-                            }
-                        }
-                    }
-                }
-                await Task.Delay(1000);
-            }
-            if (SelectingMap)
-            {
-                mapNames.RemoveAt(chosen);
-
-                if (mapNames.Count == 1)
-                {
-                    await PreviousMessage.DeleteAsync();
-                    return mapNames[0];
-                }
-                else
-                {
-                    return await StartMapSelection(ctx, mapNames, enemyCaptain, captain, playerIds);
-                }
-            }
-            else
-            {
-                return ABORT_RESULT;
-            }
-        }
-
         public static async Task<DiscordEmbed> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name)
         {
             //Update stats and shit
@@ -905,6 +975,25 @@ namespace SquidBot_Sharp.Modules
             return embed;
         }
 
+        public static async Task<bool> ChangeNameIfRelevant(DiscordMember member)
+        {
+            PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());
+            if (player.ID != null)
+            {
+                if (player.Name != member.DisplayName)
+                {
+                    player.Name = member.DisplayName;
+
+                    await DatabaseModule.DeletePlayerStats(player.ID);
+                    await DatabaseModule.AddPlayerMatchmakingStat(player);
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static void Shuffle<T>(this IList<T> list)
         {
             int n = list.Count;
@@ -915,6 +1004,28 @@ namespace SquidBot_Sharp.Modules
                 T value = list[k];
                 list[k] = list[n];
                 list[n] = value;
+            }
+        }
+
+        private static string GetEmoteRepresentation(this MapSelectionType type)
+        {
+            return ":" + numbersWritten[((int)type) + 1] + ":"; 
+        }
+
+        private static string GetDialogueDisplay(this MapSelectionType type)
+        {
+            switch (type)
+            {
+                case MapSelectionType.RandomPoolVeto:
+                    return "Random Pool Veto";
+                case MapSelectionType.AllPick:
+                    return "All Pick/Random Selection";
+                case MapSelectionType.LeaderPick:
+                    return "Queue Leader Pick";
+                case MapSelectionType.CompletelyRandomPick:
+                    return "MechaSquidski's Pick";
+                default:
+                    return string.Empty;
             }
         }
     }

@@ -158,12 +158,17 @@ namespace SquidBot_Sharp.Commands
                 elo = player.CurrentElo;
             }
 
-            await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
+            await ctx.RespondAsync("Player " + player.Name + "'s current Elo is " + elo);
         }
 
-        [Command("queuedebug"), Description("Join CS:GO play session"), RequireOwner]
+        [Command("queuedebug"), Description("Join CS:GO play session")]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
+            if (!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
+            {
+                await ctx.RespondAsync("You are not authorized to use this");
+                return;
+            }
             if (!MatchmakingModule.CanJoinQueue)
             {
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
