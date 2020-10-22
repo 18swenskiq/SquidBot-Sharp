@@ -158,7 +158,7 @@ namespace SquidBot_Sharp.Commands
                 elo = player.CurrentElo;
             }
 
-            await ctx.RespondAsync("Player <@" + discordId + ">'s current Elo is " + elo);
+            await ctx.RespondAsync("Player " + player.Name + "'s current Elo is " + elo);
         }
 
         [Command("queuedebug"), Description("Join CS:GO play session")]
