@@ -212,6 +212,19 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("You do not have the proper permissions to call this command currently");
             return;
         }
+
+        [Command("getmaplist"), Description("Get the map list")]
+        public async Task GetMapList(CommandContext ctx)
+        {
+            var result = await DatabaseModule.GetAllMapNames();
+            string responsestring = "List of maps available:\n```\n";
+            foreach(var item in result)
+            {
+                responsestring += $"{item}, ";
+            }
+            responsestring += "\n```";
+            await ctx.RespondAsync(responsestring);
+        }
         /*
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx)
