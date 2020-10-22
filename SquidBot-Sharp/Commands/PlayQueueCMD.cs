@@ -80,6 +80,12 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
+            if(MatchmakingModule.Bets.ContainsKey(ctx.Member.Id.ToString()))
+            {
+                await ctx.RespondAsync("Your bet of " + MatchmakingModule.Bets[ctx.Member.Id.ToString()] + " SquidCoin has been removed.");
+                MatchmakingModule.Bets.Remove(ctx.Member.Id.ToString());
+            }
+
             await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
             bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
@@ -127,7 +133,7 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;
             }
-            if (!MatchmakingModule.CanJoinQueue)
+            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
             {
                 await ctx.RespondAsync("There is no queue to spectate.");
                 return;
@@ -139,9 +145,92 @@ namespace SquidBot_Sharp.Commands
             }
 
             MatchmakingModule.CurrentSpectatorIds.Add(ctx.Member.Id.ToString());
+            MatchmakingModule.CurrentSpectatorNames.Add(ctx.Member.DisplayName);
 
             await ctx.RespondAsync("You have been added to the list of spectators when the game starts");
         }
+
+        [Command("squidcoin"), Description("Check player SquidCoin")]
+        public async Task SquidCoinCheck(CommandContext ctx, string discordId = "")
+        {
+            if (discordId == string.Empty)
+            {
+                discordId = ctx.Member.Id.ToString();
+            }
+
+            long coin = await DatabaseModule.GetPlayerSquidCoin(discordId);
+
+            DiscordUser user = await ctx.Client.GetUserAsync(System.Convert.ToUInt64(discordId));
+
+            string response = user.Username + " has " + coin + " SquidCoin";
+            await ctx.RespondAsync(response);
+        }
+
+        [Command("bet"), Description("Bet SquidCoin on a match")]
+        public async Task SquidCoinBet(CommandContext ctx, long amount, string userToBetOn = "")
+        {
+            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
+            {
+                await ctx.RespondAsync("There is no game to bet on.");
+                return;
+            }
+            if (MatchmakingModule.MatchPlaying && !MatchmakingModule.SelectingMap)
+            {
+                await ctx.RespondAsync("You cannot bet after a match has started");
+                return;
+            }
+            if(MatchmakingModule.PlayersInQueue.Contains(ctx.Member))
+            {
+                await ctx.RespondAsync("You cannot bet in a game you are playing in.");
+                return;
+            }
+            if(userToBetOn == string.Empty)
+            {
+                await ctx.RespondAsync("Please select a user to bet on. You may enter their Discord ID or mention them. Example: >bet " + amount + " 107967155928088576");
+                return;
+            }
+
+            if(userToBetOn.Contains("<"))
+            {
+                userToBetOn = userToBetOn.Substring(3, userToBetOn.Length - 4);
+            }
+            PlayerData betUser = await DatabaseModule.GetPlayerMatchmakingStats(userToBetOn);
+
+            string discordId = ctx.Member.Id.ToString();
+
+            long coin = await DatabaseModule.GetPlayerSquidCoin(discordId);
+
+            if(amount > coin)
+            {
+                await ctx.RespondAsync("You cannot bet " + amount + " SquidCoin - you only have " + coin + " SquidCoin.");
+                return;
+            }
+
+            string extraDialogue = "";
+            if(MatchmakingModule.Bets.ContainsKey(discordId))
+            {
+                PlayerData previousBet = await DatabaseModule.GetPlayerMatchmakingStats(MatchmakingModule.Bets[discordId].UserToBetOn);
+                extraDialogue = " This replaces your previous bet of " + MatchmakingModule.Bets[discordId].BetAmount + " SquidCoin on " + previousBet.Name + ".";
+                MatchmakingModule.Bets[discordId] = new MatchmakingModule.BetData()
+                {
+                    Name = ctx.Member.DisplayName,
+                    UserToBetOn = userToBetOn,
+                    BetAmount = amount
+                };
+            }
+            else
+            {
+                MatchmakingModule.Bets.Add(discordId, new MatchmakingModule.BetData()
+                {
+                    Name = ctx.Member.DisplayName,
+                    UserToBetOn = userToBetOn,
+                    BetAmount = amount
+                });
+            }
+
+            await ctx.RespondAsync(amount + " SquidCoin has been bet on " + betUser.Name + ". You will see changes in your balance reflected after the match has ended." + extraDialogue);
+        }
+
 
         [Command("elo"), Description("Check player elo")]
         public async Task Elo(CommandContext ctx, string discordId = "")

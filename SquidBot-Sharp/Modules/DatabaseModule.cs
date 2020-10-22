@@ -346,6 +346,103 @@ namespace SquidBot_Sharp.Modules
             return result;
         }
 
+        public static async Task<long> GetPlayerSquidCoin(string discordId)
+        {
+            HitException = null;
+            string result = string.Empty;
+
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    string sqlquery = $"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';";
+
+                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
+
+                    var rdr = await cmd.ExecuteReaderAsync();
+
+                    while (await rdr.ReadAsync())
+                    {
+                        result = rdr[0].ToString();
+                    }
+
+                    await rdr.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            if(result == string.Empty)
+            {
+                return 0;
+            }
+            return System.Convert.ToInt64(result);
+        }
+        public static async Task AddSquidCoinPlayer(string discordId, long coin)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = "INSERT INTO SquidCoinStats(PlayerID, Coins) VALUES(@discordId, @coin);";
+                    await cmd.PrepareAsync();
+
+                    cmd.Parameters.AddWithValue("@discordId", discordId);
+                    cmd.Parameters.AddWithValue("@coin", coin);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
+        public static async Task DeleteSquidCoinPlayer(string discordId)
+        {
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+
+                    cmd.CommandText = $"DELETE FROM SquidCoinStats WHERE PlayerID='{discordId}';";
+                    await cmd.PrepareAsync();
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    HitException = ex;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+            return;
+        }
+
         public static async Task<List<string>> GetPlayersFromMatch(int matchId, int team)
         {
             HitException = null;

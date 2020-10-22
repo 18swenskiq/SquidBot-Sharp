@@ -166,6 +166,7 @@ namespace SquidBot_Sharp.Modules
 
     public struct PlayerTeamMatch
     {
+        public string TeamName;
         public int RoundsWon;
 
         public PlayerData Player1;
