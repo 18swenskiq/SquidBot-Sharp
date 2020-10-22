@@ -1014,6 +1014,19 @@ namespace SquidBot_Sharp.Modules
                 RoundsWon = team2player1Data.RoundsWon
             };
 
+            if(team1Data.RoundsWon == 0 && team2Data.RoundsWon == 0)
+            {
+                currentWinner = null;
+                var badGameEmbed = new DiscordEmbedBuilder
+                {
+                    Color = new DiscordColor(0x3277a8),
+                    Title = "CS:GO Match Finished: Game Cancelled",
+                    Timestamp = DateTime.UtcNow,
+                };
+
+                return badGameEmbed;
+            }
+
             if(team1player1Data.WonGame && team2player1Data.WonGame)
             {
                 currentWinner = null;
