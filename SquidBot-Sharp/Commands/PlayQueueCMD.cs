@@ -214,6 +214,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("getmaplist"), Description("Get the map list")]
+        [Aliases("getmapnames")]
         public async Task GetMapList(CommandContext ctx)
         {
             var result = await DatabaseModule.GetAllMapNames();
