@@ -348,7 +348,7 @@ namespace SquidBot_Sharp.Commands
             responsestring += "\n```";
             await ctx.RespondAsync(responsestring);
         }
-        /*
+
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx)
         {
@@ -380,12 +380,6 @@ namespace SquidBot_Sharp.Commands
             //Go through all the matches and recalculate their ELO
             await MatchmakingModule.RecalculateAllElo(ctx, steamIdToPlayerId);
         }
-
-        [Command("test"), Description("Join CS:GO play session")]
-        public async Task Test(CommandContext ctx)
-        {
-
-        }*/
 
         [Command("register"), Description("Register SteamID for games")]
         public async Task Register(CommandContext ctx, string steamId = "")

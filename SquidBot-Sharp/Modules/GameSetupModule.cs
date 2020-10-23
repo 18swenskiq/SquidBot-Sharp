@@ -221,20 +221,21 @@ namespace SquidBot_Sharp.Modules
             const float BEGINNER_GAME_COUNT = 15;
 
             float allGamesPlayed = player.TotalGames - 1;
-            float scalingRatio = 1 - MathF.Min(0.75f, allGamesPlayed / BEGINNER_GAME_COUNT);
+            float scalingRatio = 1 - MathF.Min(0.5f, allGamesPlayed / BEGINNER_GAME_COUNT);
 
             float GAME_WIN_SCALING_FACTOR = 20 * scalingRatio;
             float ROUND_SCALING_FACTOR = 10 * scalingRatio;
             float KILL_SCALING_FACTOR = 5 * scalingRatio;
-            float ASSIST_SCALING_FACTOR = 1;
-            float DEATH_SCALING_FACTOR = 4;
-            float HEADSHOT_SCALING_FACTOR = 2;
+            float ASSIST_SCALING_FACTOR = 1 * scalingRatio;
+            float DEATH_SCALING_FACTOR = 4 * scalingRatio;
+            float HEADSHOT_SCALING_FACTOR = 2 * scalingRatio;
 
             const float WIN_REDUCE = 1.5f;
-            const float ROUND_REDUCE = 0.5f;
+            const float ROUND_REDUCE_WIN = 0.5f;
+            const float ROUND_REDUCE_LOSE = 0.48f;
             const float KILL_REDUCE = 0.4f;
             const float ASSIST_REDUCE = 0.2f;
-            const float DEATH_REDUCE = 0.5f;
+            const float DEATH_REDUCE = 0.45f;
             const float HEADSHOT_REDUCE = 0.2f;
 
             float currentPlayerElo = player.CurrentElo;
@@ -253,17 +254,21 @@ namespace SquidBot_Sharp.Modules
             winElo += GAME_WIN_SCALING_FACTOR * ((roundsWon > roundsLost ? 1 : 0) - expected);
             winElo *= WIN_REDUCE;
 
-            float roundElo = 0;
+            float roundEloWin = 0;
             for (int i = 0; i < roundsWon; i++)
             {
-                roundElo += ROUND_SCALING_FACTOR * (1 - expected);
+                roundEloWin += ROUND_SCALING_FACTOR * (1 - expected);
             }
+            roundEloWin *= ROUND_REDUCE_WIN;
+
+            float roundEloLose = 0;
             for (int i = 0; i < roundsLost; i++)
             {
-                roundElo += ROUND_SCALING_FACTOR * (0 - expected);
+                roundEloLose += ROUND_SCALING_FACTOR * (0 - expected);
             }
+            roundEloLose *= ROUND_REDUCE_LOSE;
 
-            roundElo *= ROUND_REDUCE;
+            float roundElo = roundEloWin + roundEloLose;
 
             float killElo = 0;
             for (int i = 0; i < killCount; i++)
