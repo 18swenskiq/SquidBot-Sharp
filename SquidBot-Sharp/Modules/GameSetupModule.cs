@@ -247,7 +247,7 @@ namespace SquidBot_Sharp.Modules
             int deathCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.DeathCount : friendlyTeam.Player2MatchStats.DeathCount;
             int headshotCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.Headshots : friendlyTeam.Player2MatchStats.Headshots;
 
-            float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - friendlyElo) / ELO_SCALING_FACTOR)));
+            float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - player.CurrentElo) / ELO_SCALING_FACTOR)));
 
             float winElo = 0;
             winElo += GAME_WIN_SCALING_FACTOR * ((roundsWon > roundsLost ? 1 : 0) - expected);
