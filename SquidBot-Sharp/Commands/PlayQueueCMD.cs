@@ -171,6 +171,7 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
+            MatchmakingModule.CurrentSpectatorDiscordIds.Add(ctx.Member.Id.ToString());
             MatchmakingModule.CurrentSpectatorIds.Add(ctx.Member.Id.ToString());
             MatchmakingModule.CurrentSpectatorNames.Add(ctx.Member.DisplayName);
 

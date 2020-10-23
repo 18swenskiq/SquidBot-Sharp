@@ -30,13 +30,14 @@ namespace SquidBot_Sharp.Modules
         private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 5;
         private const bool PRE_SETUP_ONLY = false;
 
-        private const long SQUID_COIN_REWARD_SPECTATE = 3;
-        private const long SQUID_COIN_REWARD_PLAY = 10;
+        private const long SQUID_COIN_REWARD_SPECTATE = 30;
+        private const long SQUID_COIN_REWARD_PLAY = 100;
         private const float SQUID_COIN_BET_WIN = 2f;
         private const int SECONDS_IN_ALLOW_BETTING = 45;
 
         public static Dictionary<string, BetData> Bets = new Dictionary<string, BetData>();
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
+        public static List<string> CurrentSpectatorDiscordIds = new List<string>();
         public static List<string> CurrentSpectatorIds = new List<string>();
         public static List<string> CurrentSpectatorNames = new List<string>();
         public static DiscordMessage PreviousMessage = null;
@@ -79,6 +80,7 @@ namespace SquidBot_Sharp.Modules
             gamePlayerToDiscordPlayer.Clear();
             CurrentSpectatorIds.Clear();
             CurrentSpectatorNames.Clear();
+            CurrentSpectatorDiscordIds.Clear();
             Bets.Clear();
             currentWinner = null;
 
@@ -799,8 +801,8 @@ namespace SquidBot_Sharp.Modules
                 //Add squidcoin for spectators (Should we verify they joined somehow?)
                 for (int i = 0; i < CurrentSpectatorIds.Count; i++)
                 {
-                    await AwardSquidCoin(CurrentSpectatorIds[i], SQUID_COIN_REWARD_SPECTATE);
-                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
+                    await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
+                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
                 }
             }
 
