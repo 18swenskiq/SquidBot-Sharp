@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+// Hello, this one comment was written by the Great CommonCrayon of Crayona 
+
 namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
