@@ -13,7 +13,9 @@ namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
+        private const string SQUIDCOIN = ":squidcoin:";
         private const ulong SQUID_CUP_ROLE = 767555242161209384;
+
         [Command("squidcup"), Description("Toggle the SquidCup role")]
         public async Task SquidCoinCheck(CommandContext ctx)
         {
@@ -180,7 +182,8 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("You have been added to the list of spectators when the game starts");
         }
 
-        [Command("squidcoin"), Description("Check player SquidCoin")]
+        [Command("squidcoins"), Description("Check player SquidCoin")]
+        [Aliases("squidcoin")]
         public async Task SquidCoinCheck(CommandContext ctx, string discordId = "")
         {
             if (discordId == string.Empty)
@@ -192,7 +195,7 @@ namespace SquidBot_Sharp.Commands
 
             DiscordUser user = await ctx.Client.GetUserAsync(System.Convert.ToUInt64(discordId));
 
-            string response = user.Username + " has " + coin + " SquidCoin";
+            string response = user.Username + " has " + coin + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN);
             await ctx.RespondAsync(response);
         }
 
