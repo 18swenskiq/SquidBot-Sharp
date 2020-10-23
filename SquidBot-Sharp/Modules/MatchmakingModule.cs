@@ -683,6 +683,7 @@ namespace SquidBot_Sharp.Modules
             catch (Exception ex)
             {
                 // Oh god this is gonna fuck up the whole program if it gets here please don't happen oh god
+                await ctx.RespondAsync("The FTP server didn't let me write the match config. This program will now stop and you'll have to restart the queue. If you don't want to have to restart the queue then bug Squidski.");
                 throw ex;
             }
 
@@ -789,23 +790,23 @@ namespace SquidBot_Sharp.Modules
             //Award SquidCoin for playing or spectating.
             if(adjustSquidCoin)
             {
-                statsembed.Description = "SquidCoin Awards\n\n";
-                statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
-                statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
-                statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
-                statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
-
                 //Add squidcoin for players
                 await AwardSquidCoin(team1[0].ID, SQUID_COIN_REWARD_PLAY);
                 await AwardSquidCoin(team1[1].ID, SQUID_COIN_REWARD_PLAY);
                 await AwardSquidCoin(team2[0].ID, SQUID_COIN_REWARD_PLAY);
                 await AwardSquidCoin(team2[1].ID, SQUID_COIN_REWARD_PLAY);
 
+                statsembed.Description = "SquidCoin Awards\n\n";
+                statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
+                statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
+                statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
+                statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
+
                 //Add squidcoin for spectators (Should we verify they joined somehow?)
                 for (int i = 0; i < CurrentSpectatorIds.Count; i++)
                 {
-                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
                     await AwardSquidCoin(CurrentSpectatorIds[i], SQUID_COIN_REWARD_SPECTATE);
+                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
                 }
             }
 
