@@ -685,6 +685,7 @@ namespace SquidBot_Sharp.Modules
             catch (Exception ex)
             {
                 // Oh god this is gonna fuck up the whole program if it gets here please don't happen oh god
+                await ctx.RespondAsync("The FTP server didn't let me write the match config. This program will now stop and you'll have to restart the queue. If you don't want to have to restart the queue then bug Squidski.");
                 throw ex;
             }
 
@@ -801,14 +802,9 @@ namespace SquidBot_Sharp.Modules
                 //Add squidcoin for spectators (Should we verify they joined somehow?)
                 for (int i = 0; i < CurrentSpectatorIds.Count; i++)
                 {
-                    await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
-                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
+                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
+                    await AwardSquidCoin(CurrentSpectatorIds[i], SQUID_COIN_REWARD_SPECTATE);
                 }
-            }
-
-            if (PreviousMessage != null)
-            {
-                await PreviousMessage.DeleteAsync();
             }
 
             taskMsg = ctx.RespondAsync(embed: statsembed);
