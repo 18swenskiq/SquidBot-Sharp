@@ -17,6 +17,7 @@ namespace SquidBot_Sharp.Modules
 {
     public static class MatchmakingModule
     {
+        public struct BetData { public string Name; public long BetAmount; public string UserToBetOn; }
         private enum MapSelectionType { RandomPoolVeto, AllPick, LeaderPick, CompletelyRandomPick };
         private static string[] numbersWritten = new string[] { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
         private const string randomizeMapEmoji = ":game_die:";
@@ -29,8 +30,15 @@ namespace SquidBot_Sharp.Modules
         private const int FREQUENCY_TO_CHECK_FOR_POSTGAME = 5;
         private const bool PRE_SETUP_ONLY = false;
 
+        private const long SQUID_COIN_REWARD_SPECTATE = 3;
+        private const long SQUID_COIN_REWARD_PLAY = 10;
+        private const float SQUID_COIN_BET_WIN = 2f;
+        private const int SECONDS_IN_ALLOW_BETTING = 45;
+
+        public static Dictionary<string, BetData> Bets = new Dictionary<string, BetData>();
         public static List<DiscordMember> PlayersInQueue = new List<DiscordMember>();
         public static List<string> CurrentSpectatorIds = new List<string>();
+        public static List<string> CurrentSpectatorNames = new List<string>();
         public static DiscordMessage PreviousMessage = null;
         public static bool CanJoinQueue = true;
         public static bool Queueing = false;
@@ -38,9 +46,11 @@ namespace SquidBot_Sharp.Modules
         public static bool CaptainPick = false;
         public static ulong CurrentMapID;
         public static bool SelectingMap { get; private set; } = false;
+        public static bool BettingAllowed { get; private set; } = false;
         public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
+        private static PlayerTeamMatch? currentWinner = null;
         private static Random rng = new Random();
 
 
@@ -63,10 +73,14 @@ namespace SquidBot_Sharp.Modules
             MatchPlaying = false;
             CanJoinQueue = true;
             Queueing = false;
+            BettingAllowed = false;
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
             gamePlayerToDiscordPlayer.Clear();
             CurrentSpectatorIds.Clear();
+            CurrentSpectatorNames.Clear();
+            Bets.Clear();
+            currentWinner = null;
 
 
             if (PreviousMessage != null)
@@ -75,6 +89,14 @@ namespace SquidBot_Sharp.Modules
             }
 
             PreviousMessage = null;
+        }
+
+        private static async Task AwardSquidCoin(string discordId, long amount)
+        {
+            long currentCoin = await DatabaseModule.GetPlayerSquidCoin(discordId);
+
+            await DatabaseModule.DeleteSquidCoinPlayer(discordId);
+            await DatabaseModule.AddSquidCoinPlayer(discordId, Math.Max(0, currentCoin + amount));
         }
 
         public static async Task<bool> DoesPlayerHaveSteamIDRegistered(CommandContext ctx, DiscordMember member)
@@ -172,6 +194,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task UpdatePlayList(CommandContext ctx)
         {
+            BettingAllowed = true;
             bool readyToStart = PlayersInQueue.Count >= 4;
             string playersNeededText = "(" + (4 - PlayersInQueue.Count) + " Players Required)";
             if (readyToStart)
@@ -711,8 +734,9 @@ namespace SquidBot_Sharp.Modules
         }
 
 
-        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
+        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool adjustSquidCoin = true)
         {
+            int currentSeconds = 0;
             while (true)
             {
                 bool currentstatus;
@@ -723,6 +747,11 @@ namespace SquidBot_Sharp.Modules
                     break;
                 }
                 await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
+                currentSeconds += FREQUENCY_TO_CHECK_FOR_POSTGAME;
+                if(currentSeconds >= SECONDS_IN_ALLOW_BETTING)
+                {
+                    BettingAllowed = false;
+                }
             }
 
             var localrcon = RconInstance.RconModuleInstance;
@@ -757,13 +786,77 @@ namespace SquidBot_Sharp.Modules
                 await PreviousMessage.DeleteAsync();
             }
 
+            //Award SquidCoin for playing or spectating.
+            if(adjustSquidCoin)
+            {
+                statsembed.Description = "SquidCoin Awards\n\n";
+                statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
+                statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
+                statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
+                statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
+
+                //Add squidcoin for players
+                await AwardSquidCoin(team1[0].ID, SQUID_COIN_REWARD_PLAY);
+                await AwardSquidCoin(team1[1].ID, SQUID_COIN_REWARD_PLAY);
+                await AwardSquidCoin(team2[0].ID, SQUID_COIN_REWARD_PLAY);
+                await AwardSquidCoin(team2[1].ID, SQUID_COIN_REWARD_PLAY);
+
+                //Add squidcoin for spectators (Should we verify they joined somehow?)
+                for (int i = 0; i < CurrentSpectatorIds.Count; i++)
+                {
+                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
+                    await AwardSquidCoin(CurrentSpectatorIds[i], SQUID_COIN_REWARD_SPECTATE);
+                }
+            }
+
             taskMsg = ctx.RespondAsync(embed: statsembed);
             PreviousMessage = null;
 
             await taskMsg;
 
+            //Award SquidCoin for bets
+            if(adjustSquidCoin && Bets.Count > 0)
+            {
+                await HandleBetResults(ctx, mapName);
+            }
+
             await Reset();
             await localrcon.WakeRconServer("sc1");
+        }
+
+        public static async Task HandleBetResults(CommandContext ctx, string mapName)
+        {
+            string winnerText = currentWinner == null ? "TIE" : currentWinner.Value.TeamName;
+            var betEmbed = new DiscordEmbedBuilder
+            {
+                Color = new DiscordColor(0x3277a8),
+                Title = "Match Bet Results (Winner: " + winnerText + ")",
+                Timestamp = DateTime.UtcNow,
+                Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Map: " + mapName }
+            };
+            if (currentWinner == null)
+            {
+                betEmbed.Description = "No bets are evaluated on a tie.";
+            }
+            else
+            {
+                foreach (string betUser in Bets.Keys)
+                {
+                    string idOfBet = Bets[betUser].UserToBetOn;
+                    bool wonBet = currentWinner.Value.Player1.ID == idOfBet || currentWinner.Value.Player2.ID == idOfBet;
+                    long change = wonBet ? ((long)(Bets[betUser].BetAmount * SQUID_COIN_BET_WIN)) - Bets[betUser].BetAmount : Bets[betUser].BetAmount;
+
+                    await AwardSquidCoin(betUser, wonBet ? change : -change);
+
+                    betEmbed.AddField(
+                        Bets[betUser].Name +
+                        (wonBet ? " won " : " lost ") + "bet.", 
+                        (wonBet ? " Gained: " : " Lost: ") + change + "SC " + 
+                        "Current: " + await DatabaseModule.GetPlayerSquidCoin(betUser));
+                }
+            }
+
+            await ctx.RespondAsync(embed: betEmbed);
         }
 
         public static async Task RecalculateAllElo(CommandContext ctx, Dictionary<string, string> steamIdToPlayerId)
@@ -793,7 +886,7 @@ namespace SquidBot_Sharp.Modules
 
                     List<string> teamNames = await DatabaseModule.GetTeamNamesFromMatch(currentMatchId);
 
-                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1]);
+                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1], adjustSquidCoin: false);
 
                 }
                 currentMatchId++;
@@ -881,7 +974,7 @@ namespace SquidBot_Sharp.Modules
             return otherPlayers[chosen];
         }
 
-        public static async Task<DiscordEmbed> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name)
+        public static async Task<DiscordEmbedBuilder> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name)
         {
             //Update stats and shit
             PlayerData t1p1Final = team1[0];
@@ -903,6 +996,7 @@ namespace SquidBot_Sharp.Modules
 
             PlayerTeamMatch team1Data = new PlayerTeamMatch()
             {
+                TeamName = team1Name,
                 Player1 = t1p1Final,
                 Player1MatchStats = team1player1Data,
                 Player2 = t1p2Final,
@@ -912,6 +1006,7 @@ namespace SquidBot_Sharp.Modules
 
             PlayerTeamMatch team2Data = new PlayerTeamMatch()
             {
+                TeamName = team2Name,
                 Player1 = t2p1Final,
                 Player1MatchStats = team2player1Data,
                 Player2 = t2p2Final,
@@ -919,6 +1014,31 @@ namespace SquidBot_Sharp.Modules
                 RoundsWon = team2player1Data.RoundsWon
             };
 
+            if(team1Data.RoundsWon == 0 && team2Data.RoundsWon == 0)
+            {
+                currentWinner = null;
+                var badGameEmbed = new DiscordEmbedBuilder
+                {
+                    Color = new DiscordColor(0x3277a8),
+                    Title = "CS:GO Match Finished: Game Cancelled",
+                    Timestamp = DateTime.UtcNow,
+                };
+
+                return badGameEmbed;
+            }
+
+            if(team1player1Data.WonGame && team2player1Data.WonGame)
+            {
+                currentWinner = null;
+            }
+            else if(team1player1Data.WonGame)
+            {
+                currentWinner = team1Data;
+            }
+            else
+            {
+                currentWinner = team2Data;
+            }
 
             float t1p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p1Final, team1Data, team2Data);
             float t1p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p2Final, team1Data, team2Data);
@@ -950,10 +1070,11 @@ namespace SquidBot_Sharp.Modules
             await DatabaseModule.AddPlayerMatchmakingStat(t1p1Final);
             await DatabaseModule.AddPlayerMatchmakingStat(t2p2Final);
 
+            string winner = team1player1Data.WonGame && team2player1Data.WonGame ? "TIE" : (team1player1Data.WonGame ? team1Name : team2Name);
             var embed = new DiscordEmbedBuilder
             {
                 Color = new DiscordColor(0x3277a8),
-                Title = "CS:GO Match Finished: " + (team1player1Data.WonGame ? team1Name : team2Name) + " Won! (" + (team1player1Data.WonGame ? team1player1Data.RoundsWon : team2player1Data.RoundsWon) + " / " + (team1player1Data.WonGame ? team1player1Data.RoundsLost : team2player1Data.RoundsLost) + ")",
+                Title = "CS:GO Match Finished: " + winner + " Won! (" + (team1player1Data.WonGame ? team1player1Data.RoundsWon : team2player1Data.RoundsWon) + " / " + (team1player1Data.WonGame ? team1player1Data.RoundsLost : team2player1Data.RoundsLost) + ")",
                 Timestamp = DateTime.UtcNow,
             };
 

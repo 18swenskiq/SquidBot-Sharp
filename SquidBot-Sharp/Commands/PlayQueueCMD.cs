@@ -11,6 +11,33 @@ namespace SquidBot_Sharp.Commands
 {
     class PlayQueueCMD : BaseCommandModule
     {
+        private const ulong SQUID_CUP_ROLE = 767555242161209384;
+        [Command("squidcup"), Description("Toggle the SquidCup role")]
+        public async Task SquidCoinCheck(CommandContext ctx)
+        {
+            bool hasRole = false;
+            foreach(var role in ctx.Member.Roles)
+            {
+                if(role.Id == SQUID_CUP_ROLE)
+                {
+                    hasRole = true;
+                    break;
+                }
+            }
+
+            if(hasRole)
+            {
+                await ctx.Member.RevokeRoleAsync(ctx.Guild.Roles[SQUID_CUP_ROLE]);
+                await ctx.RespondAsync("The SquidCup role has been removed from you.");
+            }
+            else
+            {
+                await ctx.Member.GrantRoleAsync(ctx.Guild.Roles[SQUID_CUP_ROLE]);
+                await ctx.RespondAsync("The SquidCup role has been granted to you.");
+            }
+
+        }
+
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq")]
         public async Task Play(CommandContext ctx, string extra = "")
@@ -80,6 +107,12 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
+            if(MatchmakingModule.Bets.ContainsKey(ctx.Member.Id.ToString()))
+            {
+                await ctx.RespondAsync("Your bet of " + MatchmakingModule.Bets[ctx.Member.Id.ToString()] + " SquidCoin has been removed.");
+                MatchmakingModule.Bets.Remove(ctx.Member.Id.ToString());
+            }
+
             await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
             bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
@@ -127,7 +160,7 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;
             }
-            if (!MatchmakingModule.CanJoinQueue)
+            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
             {
                 await ctx.RespondAsync("There is no queue to spectate.");
                 return;
@@ -139,9 +172,92 @@ namespace SquidBot_Sharp.Commands
             }
 
             MatchmakingModule.CurrentSpectatorIds.Add(ctx.Member.Id.ToString());
+            MatchmakingModule.CurrentSpectatorNames.Add(ctx.Member.DisplayName);
 
             await ctx.RespondAsync("You have been added to the list of spectators when the game starts");
         }
+
+        [Command("squidcoin"), Description("Check player SquidCoin")]
+        public async Task SquidCoinCheck(CommandContext ctx, string discordId = "")
+        {
+            if (discordId == string.Empty)
+            {
+                discordId = ctx.Member.Id.ToString();
+            }
+
+            long coin = await DatabaseModule.GetPlayerSquidCoin(discordId);
+
+            DiscordUser user = await ctx.Client.GetUserAsync(System.Convert.ToUInt64(discordId));
+
+            string response = user.Username + " has " + coin + " SquidCoin";
+            await ctx.RespondAsync(response);
+        }
+
+        [Command("bet"), Description("Bet SquidCoin on a match")]
+        public async Task SquidCoinBet(CommandContext ctx, long amount, string userToBetOn = "")
+        {
+            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
+            {
+                await ctx.RespondAsync("There is no game to bet on.");
+                return;
+            }
+            if (!MatchmakingModule.BettingAllowed)
+            {
+                await ctx.RespondAsync("Betting has been closed for the current match.");
+                return;
+            }
+            if(MatchmakingModule.PlayersInQueue.Contains(ctx.Member))
+            {
+                await ctx.RespondAsync("You cannot bet in a game you are playing in.");
+                return;
+            }
+            if(userToBetOn == string.Empty)
+            {
+                await ctx.RespondAsync("Please select a user to bet on. You may enter their Discord ID or mention them. Example: >bet " + amount + " 107967155928088576");
+                return;
+            }
+
+            if(userToBetOn.Contains("<"))
+            {
+                userToBetOn = userToBetOn.Substring(3, userToBetOn.Length - 4);
+            }
+            PlayerData betUser = await DatabaseModule.GetPlayerMatchmakingStats(userToBetOn);
+
+            string discordId = ctx.Member.Id.ToString();
+
+            long coin = await DatabaseModule.GetPlayerSquidCoin(discordId);
+
+            if(amount > coin)
+            {
+                await ctx.RespondAsync("You cannot bet " + amount + " SquidCoin - you only have " + coin + " SquidCoin.");
+                return;
+            }
+
+            string extraDialogue = "";
+            if(MatchmakingModule.Bets.ContainsKey(discordId))
+            {
+                PlayerData previousBet = await DatabaseModule.GetPlayerMatchmakingStats(MatchmakingModule.Bets[discordId].UserToBetOn);
+                extraDialogue = " This replaces your previous bet of " + MatchmakingModule.Bets[discordId].BetAmount + " SquidCoin on " + previousBet.Name + ".";
+                MatchmakingModule.Bets[discordId] = new MatchmakingModule.BetData()
+                {
+                    Name = ctx.Member.DisplayName,
+                    UserToBetOn = userToBetOn,
+                    BetAmount = amount
+                };
+            }
+            else
+            {
+                MatchmakingModule.Bets.Add(discordId, new MatchmakingModule.BetData()
+                {
+                    Name = ctx.Member.DisplayName,
+                    UserToBetOn = userToBetOn,
+                    BetAmount = amount
+                });
+            }
+
+            await ctx.RespondAsync(amount + " SquidCoin has been bet on " + betUser.Name + ". You will see changes in your balance reflected after the match has ended." + extraDialogue);
+        }
+
 
         [Command("elo"), Description("Check player elo")]
         public async Task Elo(CommandContext ctx, string discordId = "")
@@ -297,56 +413,96 @@ namespace SquidBot_Sharp.Commands
             await ctx.RespondAsync("Steam ID added");
         }
 
+
+
+        private struct PlayerLeaderboardStats
+        {
+            public string Name;
+            public PlayerData playerData;
+            public long squidCoin;
+        }
+
         [Command("leaderboard"), Description("Display leaderboard")]
         [Aliases("lb")]
-        public async Task Leaderboard(CommandContext ctx, string parameters = "")
+        public async Task Leaderboard(CommandContext ctx, string parameters = "", string shouldReverse = "")
         {
-            List<PlayerData> allPlayers = new List<PlayerData>();
-
-            var playerIds = await DatabaseModule.GetPlayerMatchmakingStatsIds();
-            for (int i = 0; i < playerIds.Count; i++)
-            {
-                var player = await DatabaseModule.GetPlayerMatchmakingStats(playerIds[i]);
-
-                allPlayers.Add(player);
-            }
-
+            List<PlayerLeaderboardStats> allPlayers = new List<PlayerLeaderboardStats>();
             parameters = parameters.ToLower();
-            if(parameters.Contains("kill"))
+
+            if (parameters.Contains("squidcoin"))
             {
-                allPlayers.Sort((x, y) => { return x.TotalKillCount.CompareTo(y.TotalKillCount); });
-            }
-            else if (parameters.Contains("assist"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalAssistCount.CompareTo(y.TotalAssistCount); });
-            }
-            else if (parameters.Contains("death"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalDeathCount.CompareTo(y.TotalDeathCount); });
-            }
-            else if (parameters.Contains("headshot"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalHeadshotCount.CompareTo(y.TotalHeadshotCount); });
-            }
-            else if (parameters.Contains("round"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalRoundsWon.CompareTo(y.TotalRoundsWon); });
-            }
-            else if (parameters.Contains("game"))
-            {
-                allPlayers.Sort((x, y) => { return x.TotalGamesWon.CompareTo(y.TotalGamesWon); });
+                var playerIds = await DatabaseModule.GetPlayerSquidIds();
+                for (int i = 0; i < playerIds.Count; i++)
+                {
+                    DiscordUser user = await ctx.Client.GetUserAsync(System.Convert.ToUInt64(playerIds[i]));
+                    long coins = await DatabaseModule.GetPlayerSquidCoin(playerIds[i]);
+
+                    allPlayers.Add(new PlayerLeaderboardStats()
+                    {
+                        Name = user.Username,
+                        squidCoin = coins
+                    });
+                }
             }
             else
             {
-                allPlayers.Sort((x, y) => { return x.CurrentElo.CompareTo(y.CurrentElo); });
+                var playerIds = await DatabaseModule.GetPlayerMatchmakingStatsIds();
+                for (int i = 0; i < playerIds.Count; i++)
+                {
+                    var player = await DatabaseModule.GetPlayerMatchmakingStats(playerIds[i]);
+
+                    allPlayers.Add(new PlayerLeaderboardStats()
+                    {
+                        Name = player.Name,
+                        playerData = player
+                    });
+                }
             }
 
-            allPlayers.Reverse();
+
+            if(parameters.Contains("kill"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalKillCount.CompareTo(x.playerData.TotalKillCount); });
+            }
+            else if (parameters.Contains("assist"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalAssistCount.CompareTo(x.playerData.TotalAssistCount); });
+            }
+            else if (parameters.Contains("death"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalDeathCount.CompareTo(x.playerData.TotalDeathCount); });
+            }
+            else if (parameters.Contains("headshot"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalHeadshotCount.CompareTo(x.playerData.TotalHeadshotCount); });
+            }
+            else if (parameters.Contains("round"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalRoundsWon.CompareTo(x.playerData.TotalRoundsWon); });
+            }
+            else if (parameters.Contains("game"))
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.TotalGamesWon.CompareTo(x.playerData.TotalGamesWon); });
+            }
+            else if (parameters.Contains("squidcoin"))
+            {
+                allPlayers.Sort((x, y) => { return y.squidCoin.CompareTo(x.squidCoin); });
+            }
+            else
+            {
+                allPlayers.Sort((x, y) => { return y.playerData.CurrentElo.CompareTo(x.playerData.CurrentElo); });
+            }
+
+            bool reverse = shouldReverse.ToLower() == "reverse" || shouldReverse.ToLower() == "r";
+            if (reverse)
+            {
+                allPlayers.Reverse();
+            }
 
             var embed = new DiscordEmbedBuilder
             {
                 Color = new DiscordColor(0x3277a8),
-                Title = "Leaderboard",
+                Title = "Leaderboard " + (reverse ? "(Reversed)" : string.Empty),
                 Timestamp = DateTime.UtcNow
             };
 
@@ -357,31 +513,35 @@ namespace SquidBot_Sharp.Commands
 
                 if(parameters.Contains("kill"))
                 {
-                    valueDisplay = "Kills: " + allPlayers[i].TotalKillCount.ToString();
+                    valueDisplay = "Kills: " + allPlayers[i].playerData.TotalKillCount.ToString();
                 }
                 else if (parameters.Contains("assist"))
                 {
-                    valueDisplay = "Assists: " + allPlayers[i].TotalAssistCount.ToString();
+                    valueDisplay = "Assists: " + allPlayers[i].playerData.TotalAssistCount.ToString();
                 }
                 else if (parameters.Contains("death"))
                 {
-                    valueDisplay = "Deaths: " + allPlayers[i].TotalDeathCount.ToString();
+                    valueDisplay = "Deaths: " + allPlayers[i].playerData.TotalDeathCount.ToString();
                 }
                 else if (parameters.Contains("headshot"))
                 {
-                    valueDisplay = "Headshots: " + allPlayers[i].TotalHeadshotCount.ToString();
+                    valueDisplay = "Headshots: " + allPlayers[i].playerData.TotalHeadshotCount.ToString();
                 }
                 else if (parameters.Contains("round"))
                 {
-                    valueDisplay = "Rounds Won: " + allPlayers[i].TotalRoundsWon.ToString();
+                    valueDisplay = "Rounds Won: " + allPlayers[i].playerData.TotalRoundsWon.ToString();
                 }
                 else if (parameters.Contains("game"))
                 {
-                    valueDisplay = "Matches Won: " + allPlayers[i].TotalGamesWon.ToString();
+                    valueDisplay = "Matches Won: " + allPlayers[i].playerData.TotalGamesWon.ToString();
+                }
+                else if (parameters.Contains("squidcoin"))
+                {
+                    valueDisplay = "SquidCoin: " + allPlayers[i].squidCoin.ToString();
                 }
                 else
                 {
-                    valueDisplay = "Elo: " + allPlayers[i].CurrentElo.ToString();
+                    valueDisplay = "Elo: " + allPlayers[i].playerData.CurrentElo.ToString();
                 }
 
                 embed.AddField((i + 1) + ". " + allPlayers[i].Name, valueDisplay);
@@ -402,6 +562,7 @@ namespace SquidBot_Sharp.Commands
                     Timestamp = DateTime.UtcNow
                 };
 
+                embed.AddField(">squidcup", "Toggles the squidcup role on yourself");
                 embed.AddField(">startqueue", "Starts a game queue if one doesn't already exist.");
                 embed.AddField(">startqueue pick", "Starts a game queue where the users select their teammates.");
                 embed.AddField(">stopqueue", "Stops a game queue if you are the host of the queue.");
@@ -411,6 +572,11 @@ namespace SquidBot_Sharp.Commands
                 embed.AddField(">register [id]", "Registers your SteamID. This will be required for you to join a game. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 embed.AddField(">leaderboard [type]", "Displays a leaderboard of a relevant type. Leaving it empty sorts it based on player elo.");
                 embed.AddField(">updatename", "Updates your stored name (used for leaderboards). This automatically updates when you queue for a game.");
+                embed.AddField(">elo", "See your current elo");
+                embed.AddField(">elo [discord id]", "See the current elo of the given discord id");
+                embed.AddField(">squidcoin", "See how much squidcoin you currently have");
+                embed.AddField(">squidcoin [discord id]", "See how much squidcoin the given discord id has");
+                embed.AddField(">bet [amount] [discord id]", "When a game is queueing, you can bet an amount of SquidCoins you have on a specific user (using their discord id)");
 
                 await ctx.RespondAsync(embed: embed);
             }
