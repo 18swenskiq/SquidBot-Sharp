@@ -801,10 +801,10 @@ namespace SquidBot_Sharp.Modules
                 statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + " " + SQUIDCOIN + " (" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
 
                 //Add squidcoin for spectators (Should we verify they joined somehow?)
-                for (int i = 0; i < CurrentSpectatorIds.Count; i++)
+                for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
                 {
-                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + SQUIDCOIN + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorIds[i]) + ")\n";
-                    await AwardSquidCoin(CurrentSpectatorIds[i], SQUID_COIN_REWARD_SPECTATE);
+                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + SQUIDCOIN + " (" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
+                    await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
                 }
             }
 
