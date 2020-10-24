@@ -23,7 +23,7 @@ namespace SquidBot_Sharp.Modules
         private const string randomizeMapEmoji = ":game_die:";
         private const string RANDOMIZE_RESULT = "RANDOMIZE";
         private const string ABORT_RESULT = "ABORT";
-        private const string SQUIDCOIN = " :squidcoin: ";
+        private const string SQUIDCOIN = ":squidcoin:";
         private const int MAP_COUNT = 7;
         private const int NEEDED_FOR_RANDOMIZE = 3;
         private const int SECONDS_IN_MINUTE = 60;
