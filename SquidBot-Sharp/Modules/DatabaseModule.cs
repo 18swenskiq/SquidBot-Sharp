@@ -8,6 +8,7 @@ using DSharpPlus.Entities;
 using MySql.Data.MySqlClient;
 using MySqlX.XDevAPI.Common;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.Crmf;
 using Org.BouncyCastle.Bcpg;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
@@ -59,37 +60,13 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<string>> GetUserMessages(ulong userID)
         {
-
-            HitException = null;
-            List<string> mylist = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT Message FROM UserMessages WHERE UserID='{userID}';");
+            List<string> messages = new List<string>();
+            foreach(DataRow message in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT Message FROM UserMessages WHERE UserID='{userID}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        mylist.Add(rdr[0].ToString());
-                    }
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                messages.Add((string)message.ItemArray[0]);
             }
-            return mylist;
+            return messages;
         }
 
         public static async Task<PlayerData> GetPlayerMatchmakingStats(string playerId)
@@ -154,35 +131,11 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<string>> GetPlayerMatchmakingStatsIds()
         {
-            HitException = null;
+            var dbresult = await GetDataRowCollection($"SELECT PlayerID, DisplayName FROM MatchmakingStats;");
             List<string> resultList = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            foreach(DataRow item in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT PlayerID, DisplayName FROM MatchmakingStats;";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        resultList.Add(rdr[0].ToString());
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                resultList.Add((string)item.ItemArray[0]);
             }
             return resultList;
         }
@@ -233,37 +186,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<string> GetMapIDFromName(string name)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT SteamID FROM MapData WHERE MapName='{name}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return result;
+            var dbresult = await GetDataRowCollection($"SELECT SteamID FROM MapData WHERE MapName='{name}';");
+            return (string)dbresult[0].ItemArray[0];
         }
 
         public static async Task AddPlayerSteamID(string discordId, string steamId)
@@ -306,118 +230,33 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<string>> GetTeamNamesFromMatch(int matchId)
         {
-            HitException = null;
+            var dbresult = await GetDataRowCollection($"SELECT team1_name, team2_name FROM get5_stats_matches WHERE matchid='{matchId}';");
             List<string> result = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT team1_name, team2_name FROM get5_stats_matches WHERE matchid='{matchId}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        if (!result.Contains(rdr[0].ToString()))
-                        {
-                            result.Add(rdr[0].ToString());
-                        }
-                        if (!result.Contains(rdr[1].ToString()))
-                        {
-                            result.Add(rdr[1].ToString());
-                        }
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+            result.Add((string)dbresult[0].ItemArray[0]);
+            result.Add((string)dbresult[0].ItemArray[1]);
             return result;
         }
 
         public static async Task<long> GetPlayerSquidCoin(string discordId)
         {
-            HitException = null;
-            string result = string.Empty;
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            if(result == string.Empty)
+            var dbresult = await GetDataRowCollection($"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';");
+            string prelimresult = (string)dbresult[0].ItemArray[0];
+            if(prelimresult == string.Empty)
             {
                 return 0;
             }
-            return System.Convert.ToInt64(result);
+            return long.Parse(prelimresult);
         }
 
         public static async Task<List<string>> GetPlayerSquidIds()
         {
-            HitException = null;
-            List<string> result = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT PlayerID FROM SquidCoinStats;");
+            List<string> idList = new List<string>();
+            foreach(DataRow item in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT PlayerID FROM SquidCoinStats;";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        result.Add(rdr[0].ToString());
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                idList.Add((string)item.ItemArray[0]);
             }
-            return result;
+            return idList;
         }
 
 
@@ -482,159 +321,36 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<string>> GetPlayersFromMatch(int matchId, int team)
         {
-            HitException = null;
-            List<string> result = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT steamid64 FROM get5_stats_players WHERE (matchid='{matchId}' AND team='team{team}');");
+            List<string> resultList = new List<string>();
+            foreach(DataRow item in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT steamid64 FROM get5_stats_players WHERE (matchid='{matchId}' AND team='team{team}');";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        if(!result.Contains(rdr[0].ToString()))
-                        {
-                            result.Add(rdr[0].ToString());
-                        }
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                resultList.Add((string)item.ItemArray[0]);
             }
-            return result;
+            return resultList;
         }
 
         public static async Task<PlayerGameData> GetPlayerStatsFromMatch(string discordId, int matchId, string teamName)
         {
             string steamId = await GetPlayerSteamIDFromDiscordID(discordId);
-            
-            HitException = null;
-            PlayerData playerData = new PlayerData();
-            List<string> resultList = new List<string>();
 
+            var dbresult = await GetDataRowCollection($"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE (steamid64='{steamId}' AND matchid={matchId});");
             PlayerGameData gameData = new PlayerGameData();
+            gameData.TeamNumber = (string)dbresult[0].ItemArray[0] == "team1" ? 1 : 2;
+            gameData.KillCount = int.Parse((string)dbresult[0].ItemArray[1]);
+            gameData.DeathCount = int.Parse((string)dbresult[0].ItemArray[2]);
+            gameData.AssistCount = int.Parse((string)dbresult[0].ItemArray[3]);
+            gameData.Headshots = int.Parse((string)dbresult[0].ItemArray[4]);
 
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE (steamid64='{steamId}' AND matchid={matchId});";
+            var dbresult2 = await GetDataRowCollection($"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';");
+            gameData.WonGame = (string)dbresult2[0].ItemArray[0] == "none" ? true : gameData.TeamNumber == 1 && (string)dbresult2[0].ItemArray[0] == "team1";
+            int team1Score = int.Parse((string)dbresult2[0].ItemArray[1]);
+            int team2Score = int.Parse((string)dbresult2[0].ItemArray[2]);
+            gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
+            gameData.RoundsLost = gameData.TeamNumber == 1 ? team2Score : team1Score;
 
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        resultList.Add(rdr[0].ToString());
-                        resultList.Add(rdr[1].ToString());
-                        resultList.Add(rdr[2].ToString());
-                        resultList.Add(rdr[3].ToString());
-                        resultList.Add(rdr[4].ToString());
-                    }
-
-                    gameData.TeamNumber = resultList[0] == "team1" ? 1 : 2;
-                    gameData.KillCount = System.Convert.ToInt32(resultList[1]);
-                    gameData.DeathCount = System.Convert.ToInt32(resultList[2]);
-                    gameData.AssistCount = System.Convert.ToInt32(resultList[3]);
-                    gameData.Headshots = System.Convert.ToInt32(resultList[4]);
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-
-            resultList.Clear();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        resultList.Add(rdr[0].ToString());
-                        resultList.Add(rdr[1].ToString());
-                        resultList.Add(rdr[2].ToString());
-                    }
-
-                    gameData.WonGame = resultList[0] == "none" ? true : gameData.TeamNumber == 1 && resultList[0] == "team1";
-                    int team1Score = System.Convert.ToInt32(resultList[1]);
-                    int team2Score = System.Convert.ToInt32(resultList[2]);
-                    gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
-                    gameData.RoundsLost = gameData.TeamNumber == 1 ? team2Score : team1Score;
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-
-            resultList.Clear();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT team{gameData.TeamNumber}_name FROM get5_stats_matches WHERE matchid='{matchId}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        resultList.Add(rdr[0].ToString());
-                    }
-
-                    gameData.TeamName = resultList[0];
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+            var dbresult3 = await GetDataRowCollection($"SELECT team{gameData.TeamNumber}_name FROM get5_stats_matches WHERE matchid='{matchId}';");
+            gameData.TeamName = (string)dbresult3[0].ItemArray[0];
 
             return gameData;
         }
@@ -810,36 +526,13 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<string>> GetAllMessages()
         {
-            HitException = null;
-            List<string> mylist = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT Message FROM UserMessages WHERE UserId != '{565566309257969668}';");
+            List<string> messageList = new List<string>();
+            foreach(DataRow item in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT Message FROM UserMessages WHERE UserId != '{565566309257969668}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        mylist.Add(rdr[0].ToString());
-                    }
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                messageList.Add((string)item.ItemArray[0]);
             }
-            return mylist;
+            return messageList;
         }
 
         public static async Task AddNewUserMessage(ulong userID, string message)
@@ -918,70 +611,32 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<Server>> GetServerList()
         {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers;");
+            List<Server> foundServers = new List<Server>();
+            foreach(DataRow item in dbresult)
             {
-                List<Server> foundServers = null;
-                try
+                var idstring = int.Parse((string)item.ItemArray[0]);
+                foundServers.Add(new Server
                 {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers;";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    DataTable temp = new DataTable();
-                    var adapter = new MySqlDataAdapter(cmd);
-                    await adapter.FillAsync(temp);
-                    foundServers = new List<Server>();
-                    foreach(DataRow row in temp.Rows)
-                    {
-                        var idstring = row.ItemArray[0];
-                        int idvar = (int)idstring;
-                        string serveridvar = (string)row.ItemArray[1];
-                        string descriptionvar = (string)row.ItemArray[2];
-                        string addressvar = (string)row.ItemArray[3];
-                        string rconpasswordvar = (string)row.ItemArray[4];
-                        string ftpuservar = (string)row.ItemArray[5];
-                        string ftpuserpasswordvar = (string)row.ItemArray[6];
-                        string ftppathvar = (string)row.ItemArray[7];
-                        string ftptypevar = (string)row.ItemArray[8];
-                        string gamevar = (string)row.ItemArray[9];
-                        var myserver = new Server { Id = idvar, ServerId = serveridvar, Description = descriptionvar, Address = addressvar, RconPassword = rconpasswordvar, FtpUser = ftpuservar, FtpPassword = ftpuserpasswordvar, FtpPath = ftppathvar, FtpType = ftptypevar, Game = gamevar };
-                        foundServers.Add(myserver);
-                    }
-                    return foundServers;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Something happened getting test server: {e}.");
-                    return foundServers;
-                }
+                    Id = int.Parse((string)item.ItemArray[0]),
+                    ServerId = (string)item.ItemArray[1],
+                    Description = (string)item.ItemArray[2],
+                    Address = (string)item.ItemArray[3],
+                    RconPassword = (string)item.ItemArray[4],
+                    FtpUser = (string)item.ItemArray[5],
+                    FtpPassword = (string)item.ItemArray[6],
+                    FtpPath = (string)item.ItemArray[7],
+                    FtpType = (string)item.ItemArray[8],
+                    Game = (string)item.ItemArray[9]
+                });
             }
+            return foundServers;
         }
 
         public static async Task<int> GetLastMatchID()
         {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT MAX(matchid) FROM get5_stats_matches;";
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    DataTable temp = new DataTable();
-                    var adapter = new MySqlDataAdapter(cmd);
-                    await adapter.FillAsync(temp);
-                    object lastmatchidobject = temp.Rows[0].ItemArray[0];
-                    int lastmatchid = (int)(uint)lastmatchidobject;
-                    await con.CloseAsync();
-                    return lastmatchid;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Something happened getting last match id: {e.Message}.");
-                    return -1;
-                }
-            }
+            var dbresult = await GetDataRowCollection("SELECT MAX(matchid) FROM get5_stats_matches;");
+            return (int)(uint)dbresult[0].ItemArray[0];
         }
 
         public static async Task<Server> GetTestServerInfo(string serverID)
@@ -993,47 +648,23 @@ namespace SquidBot_Sharp.Modules
 
             serverID = GeneralUtil.GetServerCode(serverID);
 
-            Server foundServer = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            // This should ideally be using the serverID var but whatever
+            var dbresult = await GetDataRowCollection("SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers WHERE ServerId = 'sc1';");
+            var idstring = dbresult[0].ItemArray[0];
+            int idvar = (int)idstring;
+            return new Server
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers WHERE ServerId = 'sc1';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    // This can be optimized because we only get one server back
-                    DataTable temp = new DataTable();
-                    var adapter = new MySqlDataAdapter(cmd);
-                    await adapter.FillAsync(temp);
-                    var foundServers = new List<Server>();
-                    foreach (DataRow row in temp.Rows)
-                    {
-                        var idstring = row.ItemArray[0];
-                        int idvar = (int)idstring;
-                        string serveridvar = (string)row.ItemArray[1];
-                        string descriptionvar = (string)row.ItemArray[2];
-                        string addressvar = (string)row.ItemArray[3];
-                        string rconpasswordvar = (string)row.ItemArray[4];
-                        string ftpuservar = (string)row.ItemArray[5];
-                        string ftpuserpasswordvar = (string)row.ItemArray[6];
-                        string ftppathvar = (string)row.ItemArray[7];
-                        string ftptypevar = (string)row.ItemArray[8];
-                        string gamevar = (string)row.ItemArray[9];
-                        var myserver = new Server { Id = idvar, ServerId = serveridvar, Description = descriptionvar, Address = addressvar, RconPassword = rconpasswordvar, FtpUser = ftpuservar, FtpPassword = ftpuserpasswordvar, FtpPath = ftppathvar, FtpType = ftptypevar, Game = gamevar };
-                        foundServers.Add(myserver);
-                    }
-                    foundServer = foundServers[0];
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Something happened getting test server: {e}.");
-                    return foundServer;
-                }
-            }
-
-            return foundServer;
+                Id = idvar,
+                ServerId = (string)dbresult[0].ItemArray[1],
+                Description = (string)dbresult[0].ItemArray[2],
+                Address = (string)dbresult[0].ItemArray[3],
+                RconPassword = (string)dbresult[0].ItemArray[4],
+                FtpUser = (string)dbresult[0].ItemArray[5],
+                FtpPassword = (string)dbresult[0].ItemArray[6],
+                FtpPath = (string)dbresult[0].ItemArray[7],
+                FtpType = (string)dbresult[0].ItemArray[8],
+                Game = (string)dbresult[0].ItemArray[9]
+            };
         }
 
         // ---------------------------------------------------------------------------------------------------------
@@ -1042,38 +673,18 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<List<KetalQuote>> GetKetalQuotes()
         {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection("SELECT QuoteNumber, Quote, Footer FROM KetalQuotes;");
+            List<KetalQuote> quoteObjects = new List<KetalQuote>();
+            foreach (DataRow row in dbresult)
             {
-                List<KetalQuote> quoteObjects = null;
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT QuoteNumber, Quote, Footer FROM KetalQuotes;";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    DataTable temp = new DataTable();
-                    var adapter = new MySqlDataAdapter(cmd);
-                    await adapter.FillAsync(temp);
-                    quoteObjects = new List<KetalQuote>();
-                    foreach (DataRow row in temp.Rows)
-                    {
-                        var idstring = row.ItemArray[0];
-                        int quotenumvar = (int)idstring;
-                        string quotevar = (string)row.ItemArray[1];
-                        string footervar = (string)row.ItemArray[2];
-                        var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
-                        quoteObjects.Add(myquote);
-                    }
-                    await con.CloseAsync();
-                    return quoteObjects;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Something happened getting ketal quotes: {e}.");
-                    return quoteObjects;
-                }
+                var idstring = row.ItemArray[0];
+                int quotenumvar = (int)idstring;
+                string quotevar = (string)row.ItemArray[1];
+                string footervar = (string)row.ItemArray[2];
+                var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
+                quoteObjects.Add(myquote);
             }
+            return quoteObjects;
         }
         public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
         {
@@ -1135,30 +746,44 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<Dictionary<string, string>> CheckGuildMembersHaveTimeZoneData(IReadOnlyDictionary<ulong, DiscordMember> memberdict)
         {
+            var dbresult = await GetDataRowCollection("SELECT * FROM UserTimeZones;");
+            var returndict = new Dictionary<string, string>();
+            foreach (DataRow item in dbresult)
+            {
+                returndict.Add((string)item.ItemArray[0], (string)item.ItemArray[1]);
+            }
+            return returndict;
+        }
+
+
+        // ---------------------------------------------------------------------------------------------------------
+        // ----------------------------------GetDataRowList---------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------
+
+        private static async Task<DataRowCollection> GetDataRowCollection(string query)
+        {
+            HitException = null;
+            string result = string.Empty;
+            DataRowCollection rows = null;
             using (MySqlConnection con = new MySqlConnection(ConnectionString))
             {
                 try
                 {
                     await con.OpenAsync();
-                    string sqlquery = $"SELECT * FROM UserTimeZones;";
+                    MySqlCommand cmd = new MySqlCommand(query, con);
 
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    DataTable temp = new DataTable();
+                    DataTable mytable = new DataTable();
                     var adapter = new MySqlDataAdapter(cmd);
-                    await adapter.FillAsync(temp);
-                    var returndict = new Dictionary<string, string>();
-                    foreach (DataRow row in temp.Rows)
-                    {
-                        returndict.Add((string)row.ItemArray[0], (string)row.ItemArray[1]);
-                    }
+                    await adapter.FillAsync(mytable);
+                    rows = mytable.Rows;
                     await con.CloseAsync();
-                    return returndict;
+                    return rows;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Something happened getting timezoneinfo: {e}.");
-                    throw new Exception();
+                    HitException = e;
+                    Console.WriteLine($"Something happened getting stuff from the database {e}.");
+                    return rows;
                 }
             }
         }
