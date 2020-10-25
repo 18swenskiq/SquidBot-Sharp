@@ -1,15 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using MySql.Data.MySqlClient;
-using MySqlX.XDevAPI.Common;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.Crmf;
-using Org.BouncyCastle.Bcpg;
 using SquidBot_Sharp.Commands;
 using SquidBot_Sharp.Models;
 using SquidBot_Sharp.Utilities;
@@ -124,33 +118,12 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task AddPlayerSteamID(string discordId, string steamId)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "INSERT INTO IDLink(DiscordID, SteamID) VALUES(@discordId, @steamId);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@discordId", discordId);
-                    cmd.Parameters.AddWithValue("@steamId", steamId);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@discordId", discordId },
+                {"@steamId", steamId }
+            };
+            await DBExecuteNonQuery("INSERT INTO IDLink(DiscordID, SteamID) VALUES(@discordId, @steamId);", payload);
         }
 
         public static async Task<bool> HasMatchEnded(int id)
@@ -194,61 +167,17 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task AddSquidCoinPlayer(string discordId, long coin)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "INSERT INTO SquidCoinStats(PlayerID, Coins) VALUES(@discordId, @coin);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@discordId", discordId);
-                    cmd.Parameters.AddWithValue("@coin", coin);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@discordId", discordId },
+                {"@coin", coin }
+            };
+            await DBExecuteNonQuery("INSERT INTO SquidCoinStats(PlayerID, Coins) VALUES(@discordId, @coin);", payload);
         }
 
         public static async Task DeleteSquidCoinPlayer(string discordId)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = $"DELETE FROM SquidCoinStats WHERE PlayerID='{discordId}';";
-                    await cmd.PrepareAsync();
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+            await DBExecuteNonQuery($"DELETE FROM SquidCoinStats WHERE PlayerID='{discordId}';", null);
         }
 
         public static async Task<List<string>> GetPlayersFromMatch(int matchId, int team)
@@ -289,170 +218,60 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task DeletePlayerSteamID(string discordId)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = $"DELETE FROM IDLink WHERE DiscordID='{discordId}';";
-                    await cmd.PrepareAsync();
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+            await DBExecuteNonQuery($"DELETE FROM IDLink WHERE DiscordID='{discordId}';", null);
         }
 
         public static async Task UpdatePlayerSteamID(string discordId, string steamId)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "UPDATE IDLink SET(DiscordID, SteamID) VALUES(@discordId, @steamId);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@discordId", discordId);
-                    cmd.Parameters.AddWithValue("@steamId", steamId);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@discordId", discordId },
+                {"@steamId", steamId }
+            };
+            await DBExecuteNonQuery("UPDATE IDLink SET(DiscordID, SteamID) VALUES(@discordId, @steamId);", payload);
         }
 
         public static async Task DeletePlayerStats(string discordId)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = $"DELETE FROM MatchmakingStats WHERE PlayerID='{discordId}';";
-                    await cmd.PrepareAsync();
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+            await DBExecuteNonQuery($"DELETE FROM MatchmakingStats WHERE PlayerID='{discordId}';", null);
         }
 
         public static async Task AddPlayerMatchmakingStat(PlayerData player)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "INSERT INTO MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@name", player.Name);
-                    cmd.Parameters.AddWithValue("@id", player.ID);
-                    cmd.Parameters.AddWithValue("@elo", player.CurrentElo);
-                    cmd.Parameters.AddWithValue("@gamesWon", player.TotalGamesWon);
-                    cmd.Parameters.AddWithValue("@gamesLost", player.TotalGamesLost);
-                    cmd.Parameters.AddWithValue("@roundsWon", player.TotalRoundsWon);
-                    cmd.Parameters.AddWithValue("@roundsLost", player.TotalRoundsLost);
-                    cmd.Parameters.AddWithValue("@kill", player.TotalKillCount);
-                    cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
-                    cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
-                    cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@name", player.Name },
+                {"@id", player.ID },
+                {"@elo", player.CurrentElo },
+                {"@gamesWon", player.TotalGamesWon },
+                {"@gamesLost", player.TotalGamesLost },
+                {"@roundsWon", player.TotalRoundsWon },
+                {"@roundsLost", player.TotalRoundsLost },
+                {"@kill", player.TotalKillCount },
+                {"@assist", player.TotalAssistCount },
+                {"@death", player.TotalDeathCount },
+                {"@headshots", player.TotalHeadshotCount }
+            };
+            await DBExecuteNonQuery("INSERT INTO MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);", payload);
         }
 
         public static async Task UpdatePlayerMatchmakingStat(PlayerData player)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "UPDATE SET MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@name", player.Name);
-                    cmd.Parameters.AddWithValue("@id", player.ID);
-                    cmd.Parameters.AddWithValue("@elo", player.CurrentElo);
-                    cmd.Parameters.AddWithValue("@gamesWon", player.TotalGamesWon);
-                    cmd.Parameters.AddWithValue("@gamesLost", player.TotalGamesLost);
-                    cmd.Parameters.AddWithValue("@roundsWon", player.TotalRoundsWon);
-                    cmd.Parameters.AddWithValue("@roundsLost", player.TotalRoundsLost);
-                    cmd.Parameters.AddWithValue("@kill", player.TotalKillCount);
-                    cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
-                    cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
-                    cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
-                    //cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@name", player.Name },
+                {"@id", player.ID },
+                {"@elo", player.CurrentElo },
+                {"@gamesWon", player.TotalGamesWon },
+                {"@gamesLost", player.TotalGamesLost },
+                {"@roundsWon", player.TotalRoundsWon },
+                {"@roundsLost", player.TotalRoundsLost },
+                {"@kill", player.TotalKillCount },
+                {"@assist", player.TotalAssistCount },
+                {"@death", player.TotalDeathCount },
+                {"@headshots", player.TotalHeadshotCount }
+            };
+            await DBExecuteNonQuery("UPDATE SET MatchmakingStats(DisplayName,PlayerID,CurrentELO,GamesWon,GamesLost,RoundsWon,RoundsLost,KillCount,AssistCount,DeathCount,Headshots) VALUES(@name, @id, @elo, @gamesWon, @gamesLost, @roundsWon, @roundsLost, @kill, @assist, @death, @headshots);", payload);
         }
 
         public static async Task<List<string>> GetAllMessages()
@@ -468,34 +287,12 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task AddNewUserMessage(ulong userID, string message)
         {
-            HitException = null;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlcommand = $"INSERT INTO UserMessages(UserID,Message) VALUES({userID},\"{message}\");";
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-
-                    cmd.CommandText = "INSERT INTO UserMessages(UserID,Message) VALUES(@number, @text);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@number", userID);
-                    cmd.Parameters.AddWithValue("@text", message);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return;
+                {"@number", userID},
+                {"@text", message }
+            };
+            await DBExecuteNonQuery("INSERT INTO UserMessages(UserID,Message) VALUES(@number, @text);", payload);
         }
 
         public static async Task AddTestServer(Server server)
@@ -505,39 +302,20 @@ namespace SquidBot_Sharp.Modules
                 Console.WriteLine("DB: Unable to add test server since one was found.");
                 return;
             }
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-                    cmd.CommandText = "INSERT INTO Servers(Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game) VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7, @val8, @val9, @val10);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@val1", server.Id);
-                    cmd.Parameters.AddWithValue("@val2", server.ServerId);
-                    cmd.Parameters.AddWithValue("@val3", server.Description);
-                    cmd.Parameters.AddWithValue("@val4", server.Address);
-                    cmd.Parameters.AddWithValue("@val5", server.RconPassword);
-                    cmd.Parameters.AddWithValue("@val6", server.FtpUser);
-                    cmd.Parameters.AddWithValue("@val7", server.FtpPassword);
-                    cmd.Parameters.AddWithValue("@val8", server.FtpPath);
-                    cmd.Parameters.AddWithValue("@val9", server.FtpType);
-                    cmd.Parameters.AddWithValue("@val10", server.Game);
-
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"DB: Something happened adding test server: {e}.");
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+                {"@val1", server.Id },
+                {"@val2", server.ServerId},
+                {"@val3", server.Description},
+                {"@val4", server.Address},
+                {"@val5", server.RconPassword},
+                {"@val6", server.FtpUser },
+                {"@val7", server.FtpPassword },
+                {"@val8", server.FtpPath },
+                {"@val9", server.FtpType },
+                {"@val10", server.Game }
+            };
+            await DBExecuteNonQuery("INSERT INTO Servers(Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game) VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7, @val8, @val9, @val10);", payload);
         }
 
         public static async Task<List<Server>> GetServerList()
@@ -619,30 +397,13 @@ namespace SquidBot_Sharp.Modules
         }
         public static async Task AddKetalQuote(int quotenumber, string quote, string footer)
         {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-                    cmd.CommandText = "INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@quotenum", quotenumber);
-                    cmd.Parameters.AddWithValue("@quote", quote);
-                    cmd.Parameters.AddWithValue("@footer", footer);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+                {"@quotenum", quotenumber },
+                {"@quote", quote},
+                {"@footer", footer}
+            };
+            await DBExecuteNonQuery("INSERT INTO KetalQuotes(QuoteNumber, Quote, Footer) VALUES(@quotenum, @quote, @footer);", payload);
         }
 
         // ---------------------------------------------------------------------------------------------------------
@@ -650,29 +411,12 @@ namespace SquidBot_Sharp.Modules
         // ---------------------------------------------------------------------------------------------------------
         public static async Task AddTimeZoneData(string userid, string jsonstring)
         {
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand();
-                    cmd.Connection = con;
-                    cmd.CommandText = "INSERT INTO UserTimeZones(UserID, TimeZoneInfo) VALUES(@var1, @var2);";
-                    await cmd.PrepareAsync();
-
-                    cmd.Parameters.AddWithValue("@var1", userid);
-                    cmd.Parameters.AddWithValue("@var2", jsonstring);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
+                {"@var1", userid},
+                {"@var2", jsonstring}
+            };
+            await DBExecuteNonQuery("INSERT INTO UserTimeZones(UserID, TimeZoneInfo) VALUES(@var1, @var2);", payload);
         }
 
         public static async Task<Dictionary<string, string>> CheckGuildMembersHaveTimeZoneData(IReadOnlyDictionary<ulong, DiscordMember> memberdict)
@@ -688,8 +432,42 @@ namespace SquidBot_Sharp.Modules
 
 
         // ---------------------------------------------------------------------------------------------------------
-        // ----------------------------------GetDataRowList---------------------------------------------------------
+        // ----------------------------------Bottom Level Methods---------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------
+
+        private static async Task DBExecuteNonQuery(string nonquery, Dictionary<string, object> vardict)
+        {
+            // Add option for delete statements
+            HitException = null;
+            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            {
+                try
+                {
+                    await con.OpenAsync();
+                    MySqlCommand cmd = new MySqlCommand();
+                    cmd.Connection = con;
+                    cmd.CommandText = nonquery;
+                    await cmd.PrepareAsync();
+
+                    // If vardict is null, we don't need to add any parameters so we can just skip it
+                    if (vardict == null) goto SkipDict;
+                    foreach(var member in vardict)
+                    {
+                        cmd.Parameters.AddWithValue(member.Key, member.Value);
+                    }
+                    SkipDict:
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception e)
+                {
+                    HitException = e;
+                }
+                finally
+                {
+                    await con.CloseAsync();
+                }
+            }
+        }
 
         private static async Task<DataRowCollection> GetDataRowCollection(string query)
         {
@@ -714,6 +492,7 @@ namespace SquidBot_Sharp.Modules
                 {
                     HitException = e;
                     Console.WriteLine($"Something happened getting stuff from the database {e}.");
+                    await con.CloseAsync();
                     return rows;
                 }
             }
