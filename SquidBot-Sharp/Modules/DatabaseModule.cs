@@ -58,7 +58,7 @@ namespace SquidBot_Sharp.Modules
             List<string> messages = new List<string>();
             foreach(DataRow message in dbresult)
             {
-                messages.Add((string)message.ItemArray[0]);
+                messages.Add(ExtractRowInfo<string>(message, 0));
             }
             return messages;
         }
@@ -68,17 +68,17 @@ namespace SquidBot_Sharp.Modules
             var dbresult = await GetDataRowCollection($"SELECT DisplayName, PlayerID, CurrentELO, GamesWon, GamesLost, RoundsWon, RoundsLost, KillCount, AssistCount, DeathCount, Headshots, MVPCount FROM MatchmakingStats WHERE PlayerID='{playerId}';");
             return new PlayerData
             {
-                Name = (string)dbresult[0].ItemArray[0],
-                ID = (string)dbresult[0].ItemArray[1],
-                CurrentElo = float.Parse((string)dbresult[0].ItemArray[2]),
-                TotalGamesWon = int.Parse((string)dbresult[0].ItemArray[3]),
-                TotalGamesLost = int.Parse((string)dbresult[0].ItemArray[4]),
-                TotalRoundsWon = int.Parse((string)dbresult[0].ItemArray[5]),
-                TotalRoundsLost = int.Parse((string)dbresult[0].ItemArray[6]),
-                TotalKillCount = int.Parse((string)dbresult[0].ItemArray[7]),
-                TotalAssistCount = int.Parse((string)dbresult[0].ItemArray[8]),
-                TotalDeathCount = int.Parse((string)dbresult[0].ItemArray[9]),
-                TotalHeadshotCount = int.Parse((string)dbresult[0].ItemArray[10])
+                Name = ExtractRowInfo<string>(dbresult[0], 0),
+                ID = ExtractRowInfo<string>(dbresult[0], 1),
+                CurrentElo = ExtractRowInfo<float>(dbresult[0], 2),
+                TotalGamesWon = ExtractRowInfo<int>(dbresult[0], 3),
+                TotalGamesLost = ExtractRowInfo<int>(dbresult[0], 4),
+                TotalRoundsWon = ExtractRowInfo<int>(dbresult[0], 5),
+                TotalRoundsLost = ExtractRowInfo<int>(dbresult[0], 6),
+                TotalKillCount = ExtractRowInfo<int>(dbresult[0], 7),
+                TotalAssistCount = ExtractRowInfo<int>(dbresult[0], 8),
+                TotalDeathCount = ExtractRowInfo<int>(dbresult[0], 9),
+                TotalHeadshotCount = ExtractRowInfo<int>(dbresult[0], 10)
             };
         }
 
@@ -88,7 +88,7 @@ namespace SquidBot_Sharp.Modules
             List<string> resultList = new List<string>();
             foreach(DataRow item in dbresult)
             {
-                resultList.Add((string)item.ItemArray[0]);
+                resultList.Add(ExtractRowInfo<string>(item, 0));
             }
             return resultList;
         }
@@ -96,7 +96,7 @@ namespace SquidBot_Sharp.Modules
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
             var dbresult = await GetDataRowCollection($"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';");
-            return (string)dbresult[0].ItemArray[0];
+            return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
         public static async Task<List<string>> GetAllMapNames()
@@ -105,7 +105,7 @@ namespace SquidBot_Sharp.Modules
             List<string> results = new List<string>();
             foreach(DataRow item in dbresult)
             {
-                results.Add((string)item.ItemArray[0]);
+                results.Add(ExtractRowInfo<string>(item, 0));
             }
             return results;
         }
@@ -113,7 +113,7 @@ namespace SquidBot_Sharp.Modules
         public static async Task<string> GetMapIDFromName(string name)
         {
             var dbresult = await GetDataRowCollection($"SELECT SteamID FROM MapData WHERE MapName='{name}';");
-            return (string)dbresult[0].ItemArray[0];
+            return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
         public static async Task AddPlayerSteamID(string discordId, string steamId)
@@ -129,7 +129,7 @@ namespace SquidBot_Sharp.Modules
         public static async Task<bool> HasMatchEnded(int id)
         {
             var dbresult = await GetDataRowCollection($"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';");
-            var result = (string)dbresult[0].ItemArray[0];
+            var result = ExtractRowInfo<string>(dbresult[0], 0);
             return result != "";
         }
 
@@ -137,15 +137,15 @@ namespace SquidBot_Sharp.Modules
         {
             var dbresult = await GetDataRowCollection($"SELECT team1_name, team2_name FROM get5_stats_matches WHERE matchid='{matchId}';");
             List<string> result = new List<string>();
-            result.Add((string)dbresult[0].ItemArray[0]);
-            result.Add((string)dbresult[0].ItemArray[1]);
+            result.Add(ExtractRowInfo<string>(dbresult[0], 0));
+            result.Add(ExtractRowInfo<string>(dbresult[0], 1));
             return result;
         }
 
         public static async Task<long> GetPlayerSquidCoin(string discordId)
         {
             var dbresult = await GetDataRowCollection($"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';");
-            string prelimresult = (string)dbresult[0].ItemArray[0];
+            string prelimresult = ExtractRowInfo<string>(dbresult[0], 0);
             if(prelimresult == string.Empty)
             {
                 return 0;
@@ -159,7 +159,7 @@ namespace SquidBot_Sharp.Modules
             List<string> idList = new List<string>();
             foreach(DataRow item in dbresult)
             {
-                idList.Add((string)item.ItemArray[0]);
+                idList.Add(ExtractRowInfo<string>(item, 0));
             }
             return idList;
         }
@@ -186,7 +186,7 @@ namespace SquidBot_Sharp.Modules
             List<string> resultList = new List<string>();
             foreach(DataRow item in dbresult)
             {
-                resultList.Add((string)item.ItemArray[0]);
+                resultList.Add(ExtractRowInfo<string>(item, 0));
             }
             return resultList;
         }
@@ -197,21 +197,21 @@ namespace SquidBot_Sharp.Modules
 
             var dbresult = await GetDataRowCollection($"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE (steamid64='{steamId}' AND matchid={matchId});");
             PlayerGameData gameData = new PlayerGameData();
-            gameData.TeamNumber = (string)dbresult[0].ItemArray[0] == "team1" ? 1 : 2;
-            gameData.KillCount = int.Parse((string)dbresult[0].ItemArray[1]);
-            gameData.DeathCount = int.Parse((string)dbresult[0].ItemArray[2]);
-            gameData.AssistCount = int.Parse((string)dbresult[0].ItemArray[3]);
-            gameData.Headshots = int.Parse((string)dbresult[0].ItemArray[4]);
+            gameData.TeamNumber = ExtractRowInfo<string>(dbresult[0], 0) == "team1" ? 1 : 2;
+            gameData.KillCount = ExtractRowInfo<int>(dbresult[0], 1);
+            gameData.DeathCount = ExtractRowInfo<int>(dbresult[0], 2);
+            gameData.AssistCount = ExtractRowInfo<int>(dbresult[0], 3);
+            gameData.Headshots = ExtractRowInfo<int>(dbresult[0], 4);
 
             var dbresult2 = await GetDataRowCollection($"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';");
-            gameData.WonGame = (string)dbresult2[0].ItemArray[0] == "none" ? true : gameData.TeamNumber == 1 && (string)dbresult2[0].ItemArray[0] == "team1";
-            int team1Score = int.Parse((string)dbresult2[0].ItemArray[1]);
-            int team2Score = int.Parse((string)dbresult2[0].ItemArray[2]);
+            gameData.WonGame = ExtractRowInfo<string>(dbresult2[0], 0) == "none" ? true : gameData.TeamNumber == 1 && ExtractRowInfo<string>(dbresult2[0], 0) == "team1";
+            int team1Score = ExtractRowInfo<int>(dbresult2[0], 1);
+            int team2Score = ExtractRowInfo<int>(dbresult2[0], 2);
             gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
             gameData.RoundsLost = gameData.TeamNumber == 1 ? team2Score : team1Score;
 
             var dbresult3 = await GetDataRowCollection($"SELECT team{gameData.TeamNumber}_name FROM get5_stats_matches WHERE matchid='{matchId}';");
-            gameData.TeamName = (string)dbresult3[0].ItemArray[0];
+            gameData.TeamName = ExtractRowInfo<string>(dbresult3[0], 0);
 
             return gameData;
         }
@@ -324,19 +324,18 @@ namespace SquidBot_Sharp.Modules
             List<Server> foundServers = new List<Server>();
             foreach(DataRow item in dbresult)
             {
-                var idstring = int.Parse((string)item.ItemArray[0]);
                 foundServers.Add(new Server
                 {
-                    Id = int.Parse((string)item.ItemArray[0]),
-                    ServerId = (string)item.ItemArray[1],
-                    Description = (string)item.ItemArray[2],
-                    Address = (string)item.ItemArray[3],
-                    RconPassword = (string)item.ItemArray[4],
-                    FtpUser = (string)item.ItemArray[5],
-                    FtpPassword = (string)item.ItemArray[6],
-                    FtpPath = (string)item.ItemArray[7],
-                    FtpType = (string)item.ItemArray[8],
-                    Game = (string)item.ItemArray[9]
+                    Id = ExtractRowInfo<int>(dbresult[0], 0),
+                    ServerId = ExtractRowInfo<string>(dbresult[0], 1),
+                    Description = ExtractRowInfo<string>(dbresult[0], 2),
+                    Address = ExtractRowInfo<string>(dbresult[0], 3),
+                    RconPassword = ExtractRowInfo<string>(dbresult[0], 4),
+                    FtpUser = ExtractRowInfo<string>(dbresult[0], 5),
+                    FtpPassword = ExtractRowInfo<string>(dbresult[0], 6),
+                    FtpPath = ExtractRowInfo<string>(dbresult[0], 7),
+                    FtpType = ExtractRowInfo<string>(dbresult[0], 8),
+                    Game = ExtractRowInfo<string>(dbresult[0], 9)
                 });
             }
             return foundServers;
@@ -345,7 +344,7 @@ namespace SquidBot_Sharp.Modules
         public static async Task<int> GetLastMatchID()
         {
             var dbresult = await GetDataRowCollection("SELECT MAX(matchid) FROM get5_stats_matches;");
-            return (int)(uint)dbresult[0].ItemArray[0];
+            return (int)ExtractRowInfo<uint>(dbresult[0], 0);
         }
 
         public static async Task<Server> GetTestServerInfo(string serverID)
@@ -359,20 +358,18 @@ namespace SquidBot_Sharp.Modules
 
             // This should ideally be using the serverID var but whatever
             var dbresult = await GetDataRowCollection("SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers WHERE ServerId = 'sc1';");
-            var idstring = dbresult[0].ItemArray[0];
-            int idvar = (int)idstring;
             return new Server
             {
-                Id = idvar,
-                ServerId = (string)dbresult[0].ItemArray[1],
-                Description = (string)dbresult[0].ItemArray[2],
-                Address = (string)dbresult[0].ItemArray[3],
-                RconPassword = (string)dbresult[0].ItemArray[4],
-                FtpUser = (string)dbresult[0].ItemArray[5],
-                FtpPassword = (string)dbresult[0].ItemArray[6],
-                FtpPath = (string)dbresult[0].ItemArray[7],
-                FtpType = (string)dbresult[0].ItemArray[8],
-                Game = (string)dbresult[0].ItemArray[9]
+                Id = ExtractRowInfo<int>(dbresult[0], 0),
+                ServerId = ExtractRowInfo<string>(dbresult[0], 1),
+                Description = ExtractRowInfo<string>(dbresult[0], 2),
+                Address = ExtractRowInfo<string>(dbresult[0], 3),
+                RconPassword = ExtractRowInfo<string>(dbresult[0], 4),
+                FtpUser = ExtractRowInfo<string>(dbresult[0], 5),
+                FtpPassword = ExtractRowInfo<string>(dbresult[0], 6),
+                FtpPath = ExtractRowInfo<string>(dbresult[0], 7),
+                FtpType = ExtractRowInfo<string>(dbresult[0], 8),
+                Game = ExtractRowInfo<string>(dbresult[0], 9)
             };
         }
 
@@ -386,10 +383,9 @@ namespace SquidBot_Sharp.Modules
             List<KetalQuote> quoteObjects = new List<KetalQuote>();
             foreach (DataRow row in dbresult)
             {
-                var idstring = row.ItemArray[0];
-                int quotenumvar = (int)idstring;
-                string quotevar = (string)row.ItemArray[1];
-                string footervar = (string)row.ItemArray[2];
+                int quotenumvar = ExtractRowInfo<int>(row, 0);
+                string quotevar = ExtractRowInfo<string>(row, 1);
+                string footervar = ExtractRowInfo<string>(row, 2);
                 var myquote = new KetalQuote { QuoteNumber = quotenumvar, Quote = quotevar, Footer = footervar };
                 quoteObjects.Add(myquote);
             }
@@ -425,7 +421,7 @@ namespace SquidBot_Sharp.Modules
             var returndict = new Dictionary<string, string>();
             foreach (DataRow item in dbresult)
             {
-                returndict.Add((string)item.ItemArray[0], (string)item.ItemArray[1]);
+                returndict.Add(ExtractRowInfo<string>(item, 0), ExtractRowInfo<string>(item, 1));
             }
             return returndict;
         }
@@ -434,6 +430,11 @@ namespace SquidBot_Sharp.Modules
         // ---------------------------------------------------------------------------------------------------------
         // ----------------------------------Bottom Level Methods---------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------
+
+        private static T ExtractRowInfo<T>(DataRow row, int colNum)
+        {
+            return (T)row.ItemArray[colNum];
+        }
 
         private static async Task DBExecuteNonQuery(string nonquery, Dictionary<string, object> vardict)
         {
