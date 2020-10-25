@@ -71,14 +71,14 @@ namespace SquidBot_Sharp.Modules
                 Name = ExtractRowInfo<string>(dbresult[0], 0),
                 ID = ExtractRowInfo<string>(dbresult[0], 1),
                 CurrentElo = ExtractRowInfo<float>(dbresult[0], 2),
-                TotalGamesWon = ExtractRowInfo<int>(dbresult[0], 3),
-                TotalGamesLost = ExtractRowInfo<int>(dbresult[0], 4),
-                TotalRoundsWon = ExtractRowInfo<int>(dbresult[0], 5),
-                TotalRoundsLost = ExtractRowInfo<int>(dbresult[0], 6),
-                TotalKillCount = ExtractRowInfo<int>(dbresult[0], 7),
-                TotalAssistCount = ExtractRowInfo<int>(dbresult[0], 8),
-                TotalDeathCount = ExtractRowInfo<int>(dbresult[0], 9),
-                TotalHeadshotCount = ExtractRowInfo<int>(dbresult[0], 10)
+                TotalGamesWon = ExtractRowInfo<uint>(dbresult[0], 3),
+                TotalGamesLost = ExtractRowInfo<uint>(dbresult[0], 4),
+                TotalRoundsWon = ExtractRowInfo<ulong>(dbresult[0], 5),
+                TotalRoundsLost = ExtractRowInfo<ulong>(dbresult[0], 6),
+                TotalKillCount = ExtractRowInfo<ulong>(dbresult[0], 7),
+                TotalAssistCount = ExtractRowInfo<ulong>(dbresult[0], 8),
+                TotalDeathCount = ExtractRowInfo<ulong>(dbresult[0], 9),
+                TotalHeadshotCount = ExtractRowInfo<ulong>(dbresult[0], 10)
             };
         }
 
@@ -197,16 +197,16 @@ namespace SquidBot_Sharp.Modules
 
             var dbresult = await GetDataRowCollection($"SELECT team, kills, deaths, assists, headshot_kills FROM get5_stats_players WHERE (steamid64='{steamId}' AND matchid={matchId});");
             PlayerGameData gameData = new PlayerGameData();
-            gameData.TeamNumber = ExtractRowInfo<string>(dbresult[0], 0) == "team1" ? 1 : 2;
-            gameData.KillCount = ExtractRowInfo<int>(dbresult[0], 1);
-            gameData.DeathCount = ExtractRowInfo<int>(dbresult[0], 2);
-            gameData.AssistCount = ExtractRowInfo<int>(dbresult[0], 3);
-            gameData.Headshots = ExtractRowInfo<int>(dbresult[0], 4);
+            gameData.TeamNumber = ExtractRowInfo<string>(dbresult[0], 0) == "team1" ? (uint)1 : (uint)2;
+            gameData.KillCount = ExtractRowInfo<ushort>(dbresult[0], 1);
+            gameData.DeathCount = ExtractRowInfo<ushort>(dbresult[0], 2);
+            gameData.AssistCount = ExtractRowInfo<ushort>(dbresult[0], 3);
+            gameData.Headshots = ExtractRowInfo<ushort>(dbresult[0], 4);
 
             var dbresult2 = await GetDataRowCollection($"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';");
             gameData.WonGame = ExtractRowInfo<string>(dbresult2[0], 0) == "none" ? true : gameData.TeamNumber == 1 && ExtractRowInfo<string>(dbresult2[0], 0) == "team1";
-            int team1Score = ExtractRowInfo<int>(dbresult2[0], 1);
-            int team2Score = ExtractRowInfo<int>(dbresult2[0], 2);
+            uint team1Score = ExtractRowInfo<ushort>(dbresult2[0], 1);
+            uint team2Score = ExtractRowInfo<ushort>(dbresult2[0], 2);
             gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;
             gameData.RoundsLost = gameData.TeamNumber == 1 ? team2Score : team1Score;
 
@@ -344,7 +344,7 @@ namespace SquidBot_Sharp.Modules
         public static async Task<int> GetLastMatchID()
         {
             var dbresult = await GetDataRowCollection("SELECT MAX(matchid) FROM get5_stats_matches;");
-            return (int)ExtractRowInfo<uint>(dbresult[0], 0);
+            return (int)(ExtractRowInfo<uint>(dbresult[0], 0));
         }
 
         public static async Task<Server> GetTestServerInfo(string serverID)
@@ -433,6 +433,7 @@ namespace SquidBot_Sharp.Modules
 
         private static T ExtractRowInfo<T>(DataRow row, int colNum)
         {
+            Console.WriteLine($"row: {row.ItemArray[colNum]}");
             return (T)row.ItemArray[colNum];
         }
 

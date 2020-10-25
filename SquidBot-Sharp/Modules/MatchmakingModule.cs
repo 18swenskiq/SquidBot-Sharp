@@ -385,7 +385,7 @@ namespace SquidBot_Sharp.Modules
                 case MapSelectionType.LeaderPick:
                     return await StartLeaderPickMapSelection(ctx, allMapNames);
                 case MapSelectionType.CompletelyRandomPick:
-                    return await StartRandomMapSelection(ctx, allMapNames);
+                    return StartRandomMapSelection(ctx, allMapNames);
             }
 
             await PreviousMessage.DeleteAsync();
@@ -624,7 +624,7 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        private static async Task<string> StartRandomMapSelection(CommandContext ctx, List<string> allMapNames)
+        private static string StartRandomMapSelection(CommandContext ctx, List<string> allMapNames)
         {
             var mapselectindex = rng.Next(0, allMapNames.Count);
             return allMapNames.ElementAt(mapselectindex);

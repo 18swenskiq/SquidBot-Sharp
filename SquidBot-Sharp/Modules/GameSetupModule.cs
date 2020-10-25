@@ -99,16 +99,16 @@ namespace SquidBot_Sharp.Modules
         public string ID;
         public float CurrentElo;
 
-        public int TotalGamesWon;
-        public int TotalGamesLost;
-        public int TotalRoundsWon;
-        public int TotalRoundsLost;
-        public int TotalKillCount;
-        public int TotalAssistCount;
-        public int TotalDeathCount;
-        public int TotalHeadshotCount;
+        public uint TotalGamesWon;
+        public uint TotalGamesLost;
+        public ulong TotalRoundsWon;
+        public ulong TotalRoundsLost;
+        public ulong TotalKillCount;
+        public ulong TotalAssistCount;
+        public ulong TotalDeathCount;
+        public ulong TotalHeadshotCount;
 
-        public int TotalGames
+        public uint TotalGames
         {
             get
             {
@@ -138,16 +138,15 @@ namespace SquidBot_Sharp.Modules
     public class PlayerGameData
     {
         public string TeamName;
-        public int TeamNumber;
+        public uint TeamNumber;
 
-        public int RoundsWon;
-        public int RoundsLost;
+        public ulong RoundsWon;
+        public ulong RoundsLost;
 
-        public int KillCount;
-        public int AssistCount;
-        public int DeathCount;
-        public int Headshots;
-        //public int MVPs;
+        public ulong KillCount;
+        public ulong AssistCount;
+        public ulong DeathCount;
+        public ulong Headshots;
 
         public bool WonGame;
 
@@ -167,7 +166,7 @@ namespace SquidBot_Sharp.Modules
     public struct PlayerTeamMatch
     {
         public string TeamName;
-        public int RoundsWon;
+        public ulong RoundsWon;
 
         public PlayerData Player1;
         public PlayerData Player2;
@@ -243,10 +242,10 @@ namespace SquidBot_Sharp.Modules
             float enemyElo = enemyTeam.CombinedElo / 2f;
             float roundsWon = friendlyTeam.RoundsWon;
             float roundsLost = enemyTeam.RoundsWon;
-            int killCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.KillCount : friendlyTeam.Player2MatchStats.KillCount;
-            int assistCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.AssistCount : friendlyTeam.Player2MatchStats.AssistCount;
-            int deathCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.DeathCount : friendlyTeam.Player2MatchStats.DeathCount;
-            int headshotCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.Headshots : friendlyTeam.Player2MatchStats.Headshots;
+            ulong killCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.KillCount : friendlyTeam.Player2MatchStats.KillCount;
+            ulong assistCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.AssistCount : friendlyTeam.Player2MatchStats.AssistCount;
+            ulong deathCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.DeathCount : friendlyTeam.Player2MatchStats.DeathCount;
+            ulong headshotCount = friendlyTeam.Player1.ID == player.ID ? friendlyTeam.Player1MatchStats.Headshots : friendlyTeam.Player2MatchStats.Headshots;
 
             float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - player.CurrentElo) / ELO_SCALING_FACTOR)));
 
@@ -271,28 +270,28 @@ namespace SquidBot_Sharp.Modules
             float roundElo = roundEloWin + roundEloLose;
 
             float killElo = 0;
-            for (int i = 0; i < killCount; i++)
+            for (ulong i = 0; i < killCount; i++)
             {
                 killElo += KILL_SCALING_FACTOR * (1 - expected);
             }
             killElo *= KILL_REDUCE;
 
             float assistElo = 0;
-            for (int i = 0; i < assistCount; i++)
+            for (ulong i = 0; i < assistCount; i++)
             {
                 assistElo += ASSIST_SCALING_FACTOR * (1 - expected);
             }
             assistElo *= ASSIST_REDUCE;
 
             float deathElo = 0;
-            for (int i = 0; i < deathCount; i++)
+            for (ulong i = 0; i < deathCount; i++)
             {
                 deathElo += DEATH_SCALING_FACTOR * (0 - expected);
             }
             deathElo *= DEATH_REDUCE;
 
             float headshotElo = 0;
-            for (int i = 0; i < headshotCount; i++)
+            for (ulong i = 0; i < headshotCount; i++)
             {
                 headshotElo += HEADSHOT_SCALING_FACTOR * (1 - expected);
             }

@@ -397,6 +397,7 @@ namespace SquidBot_Sharp.Commands
             }
             catch(Exception e)
             {
+                Console.WriteLine($"Failed to convert because {e.Message}.");
                 failedToConvert = true;
             }
             if(steamId.Contains("STEAM") || steamId.Contains("[U") || failedToConvert)
