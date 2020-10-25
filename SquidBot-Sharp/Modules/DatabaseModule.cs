@@ -71,62 +71,21 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<PlayerData> GetPlayerMatchmakingStats(string playerId)
         {
-            HitException = null;
-            PlayerData playerData = new PlayerData();
-            List<string> resultList = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT DisplayName, PlayerID, CurrentELO, GamesWon, GamesLost, RoundsWon, RoundsLost, KillCount, AssistCount, DeathCount, Headshots, MVPCount FROM MatchmakingStats WHERE PlayerID='{playerId}';");
+            return new PlayerData
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT DisplayName, PlayerID, CurrentELO, GamesWon, GamesLost, RoundsWon, RoundsLost, KillCount, AssistCount, DeathCount, Headshots, MVPCount FROM MatchmakingStats WHERE PlayerID='{playerId}';";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        resultList.Add(rdr[0].ToString());
-                        resultList.Add(rdr[1].ToString());
-                        resultList.Add(rdr[2].ToString());
-                        resultList.Add(rdr[3].ToString());
-                        resultList.Add(rdr[4].ToString());
-                        resultList.Add(rdr[5].ToString());
-                        resultList.Add(rdr[6].ToString());
-                        resultList.Add(rdr[7].ToString());
-                        resultList.Add(rdr[8].ToString());
-                        resultList.Add(rdr[9].ToString());
-                        resultList.Add(rdr[10].ToString());
-                        resultList.Add(rdr[11].ToString());
-                    }
-
-                    playerData.Name = resultList[0];
-                    playerData.ID = resultList[1];
-                    playerData.CurrentElo = System.Convert.ToSingle(resultList[2]);
-                    playerData.TotalGamesWon = System.Convert.ToInt32(resultList[3]);
-                    playerData.TotalGamesLost = System.Convert.ToInt32(resultList[4]);
-                    playerData.TotalRoundsWon = System.Convert.ToInt32(resultList[5]);
-                    playerData.TotalRoundsLost = System.Convert.ToInt32(resultList[6]);
-                    playerData.TotalKillCount = System.Convert.ToInt32(resultList[7]);
-                    playerData.TotalAssistCount = System.Convert.ToInt32(resultList[8]);
-                    playerData.TotalDeathCount = System.Convert.ToInt32(resultList[9]);
-                    playerData.TotalHeadshotCount = System.Convert.ToInt32(resultList[10]);
-                    //playerData.TotalMVPCount = System.Convert.ToInt32(resultList[11]);
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return playerData;
+                Name = (string)dbresult[0].ItemArray[0],
+                ID = (string)dbresult[0].ItemArray[1],
+                CurrentElo = float.Parse((string)dbresult[0].ItemArray[2]),
+                TotalGamesWon = int.Parse((string)dbresult[0].ItemArray[3]),
+                TotalGamesLost = int.Parse((string)dbresult[0].ItemArray[4]),
+                TotalRoundsWon = int.Parse((string)dbresult[0].ItemArray[5]),
+                TotalRoundsLost = int.Parse((string)dbresult[0].ItemArray[6]),
+                TotalKillCount = int.Parse((string)dbresult[0].ItemArray[7]),
+                TotalAssistCount = int.Parse((string)dbresult[0].ItemArray[8]),
+                TotalDeathCount = int.Parse((string)dbresult[0].ItemArray[9]),
+                TotalHeadshotCount = int.Parse((string)dbresult[0].ItemArray[10])
+            };
         }
 
         public static async Task<List<string>> GetPlayerMatchmakingStatsIds()
@@ -142,46 +101,19 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
-            string sqlquery = $"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';";
-            return await GetStringFromDatabase(sqlquery);
+            var dbresult = await GetDataRowCollection($"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';");
+            return (string)dbresult[0].ItemArray[0];
         }
 
         public static async Task<List<string>> GetAllMapNames()
         {
-            HitException = null;
-            List<string> result = new List<string>();
-
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
+            var dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData;");
+            List<string> results = new List<string>();
+            foreach(DataRow item in dbresult)
             {
-                try
-                {
-                    await con.OpenAsync();
-                    string sqlquery = $"SELECT MapName FROM MapData;";
-
-                    MySqlCommand cmd = new MySqlCommand(sqlquery, con);
-
-                    var rdr = await cmd.ExecuteReaderAsync();
-
-                    while (await rdr.ReadAsync())
-                    {
-                        if(!result.Contains(rdr[0].ToString()))
-                        {
-                            result.Add(rdr[0].ToString());
-                        }
-                    }
-
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
+                results.Add((string)item.ItemArray[0]);
             }
-            return result;
+            return results;
         }
 
         public static async Task<string> GetMapIDFromName(string name)
@@ -223,8 +155,8 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task<bool> HasMatchEnded(int id)
         {
-            string sqlquery = $"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';";
-            var result = await GetStringFromDatabase(sqlquery);
+            var dbresult = await GetDataRowCollection($"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';");
+            var result = (string)dbresult[0].ItemArray[0];
             return result != "";
         }
 
@@ -467,7 +399,6 @@ namespace SquidBot_Sharp.Modules
                     cmd.Parameters.AddWithValue("@assist", player.TotalAssistCount);
                     cmd.Parameters.AddWithValue("@death", player.TotalDeathCount);
                     cmd.Parameters.AddWithValue("@headshots", player.TotalHeadshotCount);
-                    //cmd.Parameters.AddWithValue("@mvps", player.TotalMVPCount);
 
                     await cmd.ExecuteNonQueryAsync();
                 }
@@ -786,42 +717,6 @@ namespace SquidBot_Sharp.Modules
                     return rows;
                 }
             }
-        }
-
-
-
-        // ---------------------------------------------------------------------------------------------------------
-        // ----------------------------------GENERIC METHODS--------------------------------------------------------
-        // ---------------------------------------------------------------------------------------------------------
-
-        private static async Task<string> GetStringFromDatabase(string query)
-        {
-            HitException = null;
-            string result = string.Empty;
-            using (MySqlConnection con = new MySqlConnection(ConnectionString))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                    MySqlCommand cmd = new MySqlCommand(query, con);
-                    var rdr = await cmd.ExecuteReaderAsync();
-                    while (await rdr.ReadAsync())
-                    {
-                        result = rdr[0].ToString();
-                    }
-                    await rdr.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    HitException = ex;
-                    Console.WriteLine("Hit exception in GetStringFromDatabase: " + ex.Message);
-                }
-                finally
-                {
-                    await con.CloseAsync();
-                }
-            }
-            return result;
         }
     }
 }
