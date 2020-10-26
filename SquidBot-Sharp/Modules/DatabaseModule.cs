@@ -129,8 +129,15 @@ namespace SquidBot_Sharp.Modules
         public static async Task<bool> HasMatchEnded(int id)
         {
             var dbresult = await GetDataRowCollection($"SELECT end_time FROM get5_stats_matches WHERE matchid='{id}';");
-            var result = ExtractRowInfo<string>(dbresult[0], 0);
-            return result != "";
+            #nullable enable
+            DateTime? dtresult = dbresult.Count > 0 ? ExtractRowInfo<DateTime>(dbresult[0], 0) : default;
+            string? result = dtresult.ToString();
+            #nullable disable
+            if(result == default || result == "1/1/0001 12:00:00 AM")
+            {
+                return false;
+            }
+            return true;
         }
 
         public static async Task<List<string>> GetTeamNamesFromMatch(int matchId)
@@ -145,12 +152,8 @@ namespace SquidBot_Sharp.Modules
         public static async Task<long> GetPlayerSquidCoin(string discordId)
         {
             var dbresult = await GetDataRowCollection($"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';");
-            string prelimresult = ExtractRowInfo<string>(dbresult[0], 0);
-            if(prelimresult == string.Empty)
-            {
-                return 0;
-            }
-            return long.Parse(prelimresult);
+            long? longresult = ExtractRowInfo<long?>(dbresult[0], 0); 
+            return (long)longresult;
         }
 
         public static async Task<List<string>> GetPlayerSquidIds()
@@ -433,8 +436,23 @@ namespace SquidBot_Sharp.Modules
 
         private static T ExtractRowInfo<T>(DataRow row, int colNum)
         {
-            Console.WriteLine($"row: {row.ItemArray[colNum]}");
-            return (T)row.ItemArray[colNum];
+           if(row.ItemArray.Length <= colNum)
+            {
+                return default(T);
+            }
+
+            if (row.ItemArray[colNum] is DBNull)
+            {
+                return default(T);
+            }
+
+            object returnobject = (T)(row.ItemArray[colNum]);
+
+            if(!(returnobject is DBNull))
+            {
+                return (T)returnobject;
+            }
+            return default(T);
         }
 
         private static async Task DBExecuteNonQuery(string nonquery, Dictionary<string, object> vardict)

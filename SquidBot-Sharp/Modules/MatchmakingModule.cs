@@ -371,15 +371,15 @@ namespace SquidBot_Sharp.Modules
             switch (confirmedType)
             {
                 case MapSelectionType.RandomPoolVeto:
-                    List<string> mapOptions = new List<string>();
+                    List<string> mapOptions = new List<string>(allMapNames);
                     Shuffle(mapOptions);
-                    mapOptions = new List<string>();
+                    List<string> sendMapOptions = new List<string>();
                     for (int i = 0; i < MAP_COUNT; i++)
                     {
-                        mapOptions.Add(mapOptions[i]);
+                        sendMapOptions.Add(mapOptions[i]);
                     }
 
-                    return await StartRandomVetoMapSelection(ctx, mapOptions, captain, enemyCaptain, playerIds);
+                    return await StartRandomVetoMapSelection(ctx, sendMapOptions, captain, enemyCaptain, playerIds);
                 case MapSelectionType.AllPick:
                     return await StartAllPickMapSelection(ctx, allMapNames);
                 case MapSelectionType.LeaderPick:

@@ -16,6 +16,12 @@ namespace SquidBot_Sharp.Commands
         private const string SQUIDCOIN = ":squidcoin:";
         private const ulong SQUID_CUP_ROLE = 767555242161209384;
 
+        [Command("test"), RequireOwner]
+        public async Task TestTask(CommandContext ctx)
+        {
+            var test = await DatabaseModule.HasMatchEnded(60);
+        }
+
         [Command("squidcup"), Description("Toggle the SquidCup role")]
         public async Task SquidCoinCheck(CommandContext ctx)
         {
