@@ -19,6 +19,9 @@ namespace SquidBot_Sharp.Modules
     {
         public struct BetData { public string Name; public long BetAmount; public string UserToBetOn; }
         private enum MapSelectionType { RandomPoolVeto, AllPick, LeaderPick, CompletelyRandomPick };
+
+        public enum MatchmakingState { Idle, Queueing, GameSetup, GameInProgress, DisplayingResults }
+
         private static string[] numbersWritten = new string[] { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
         private const string randomizeMapEmoji = ":game_die:";
         private const string RANDOMIZE_RESULT = "RANDOMIZE";
@@ -42,14 +45,10 @@ namespace SquidBot_Sharp.Modules
         public static List<string> CurrentSpectatorIds = new List<string>();
         public static List<string> CurrentSpectatorNames = new List<string>();
         public static DiscordMessage PreviousMessage = null;
-        public static bool CanJoinQueue = true;
-        public static bool Queueing = false;
-        public static bool MatchPlaying = false;
+        public static MatchmakingState CurrentGameState = MatchmakingState.Idle;
         public static bool CaptainPick = false;
         public static ulong CurrentMapID;
-        public static bool SelectingMap { get; private set; } = false;
         public static bool BettingAllowed { get; private set; } = false;
-        public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
         private static PlayerTeamMatch? currentWinner = null;
@@ -61,7 +60,7 @@ namespace SquidBot_Sharp.Modules
         {
             await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
 
-            if (!MatchPlaying && !WasReset)
+            if (CurrentGameState == MatchmakingState.Queueing)
             {
                 await Reset();
                 await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
@@ -70,11 +69,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task Reset()
         {
-            WasReset = true;
-            SelectingMap = false;
-            MatchPlaying = false;
-            CanJoinQueue = true;
-            Queueing = false;
+            CurrentGameState = MatchmakingState.Idle;
             BettingAllowed = false;
             PlayersInQueue.Clear();
             discordPlayerToGamePlayer.Clear();
@@ -109,11 +104,11 @@ namespace SquidBot_Sharp.Modules
             return id != string.Empty;
         }
 
-        public static async Task<bool> JoinQueue(CommandContext ctx, DiscordMember member)
+        public static async Task JoinQueue(CommandContext ctx, DiscordMember member)
         {
-            if (MatchPlaying)
+            if (CurrentGameState != MatchmakingState.Queueing)
             {
-                return true;
+                return;
             }
 
             if (!PlayersInQueue.Contains(member))
@@ -149,12 +144,10 @@ namespace SquidBot_Sharp.Modules
             gamePlayerToDiscordPlayer[player] = member;
 
             await UpdatePlayList(ctx);
-
-            return PlayersInQueue.Count >= 4;
         }
         public static async Task LeaveQueue(CommandContext ctx, DiscordMember member)
         {
-            if (MatchPlaying)
+            if (CurrentGameState == MatchmakingState.GameInProgress)
             {
                 return;
             }
@@ -223,7 +216,7 @@ namespace SquidBot_Sharp.Modules
 
             if (readyToStart)
             {
-                MatchPlaying = true;
+                CurrentGameState = MatchmakingState.GameSetup;
                 List<PlayerData> players = new List<PlayerData>();
                 for (int i = 0; i < PlayersInQueue.Count; i++)
                 {
@@ -284,7 +277,6 @@ namespace SquidBot_Sharp.Modules
 
                 do
                 {
-                    SelectingMap = true;
                     string mapSelectionResult = await DetermineMapSelectionType(ctx, captain, enemyCaptain, playerIds);
 
                     if (mapSelectionResult == ABORT_RESULT)
@@ -294,7 +286,7 @@ namespace SquidBot_Sharp.Modules
                     else if (mapSelectionResult != RANDOMIZE_RESULT)
                     {
                         //Start map
-                        SelectingMap = false;
+                        CurrentGameState = MatchmakingState.GameInProgress;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
                         CurrentMapID = ulong.Parse(mapid);
                         await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
@@ -332,7 +324,6 @@ namespace SquidBot_Sharp.Modules
             Task<DiscordMessage> taskMapMsg = ctx.RespondAsync(embed: mapselectmodeembed);
             PreviousMessage = taskMapMsg.Result;
 
-            SelectingMap = true;
             await taskMapMsg;
             for (int i = 0; i < mapSelectionTypesLength; i++)
             {
@@ -436,7 +427,7 @@ namespace SquidBot_Sharp.Modules
             bool waiting = true;
             while (waiting)
             {
-                if (!SelectingMap)
+                if (CurrentGameState != MatchmakingState.GameSetup)
                 {
                     break;
                 }
@@ -483,7 +474,7 @@ namespace SquidBot_Sharp.Modules
                 }
                 await Task.Delay(1000);
             }
-            if (SelectingMap)
+            if (CurrentGameState == MatchmakingState.GameSetup)
             {
                 mapNames.RemoveAt(chosen);
 
@@ -516,7 +507,7 @@ namespace SquidBot_Sharp.Modules
             bool updateEmbed = true;
             while (true)
             {
-                if(!SelectingMap)
+                if(CurrentGameState != MatchmakingState.GameSetup)
                 {
                     return ABORT_RESULT;
                 }
@@ -775,6 +766,8 @@ namespace SquidBot_Sharp.Modules
             {
                 Console.WriteLine(e.Message);
             }
+
+            CurrentGameState = MatchmakingState.DisplayingResults;
 
             var embed = new DiscordEmbedBuilder
             {

@@ -67,7 +67,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
-        [Aliases("sq")]
+        [Aliases("sq", "startq")]
         public async Task Play(CommandContext ctx, string extra = "")
         {
             if(!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
@@ -76,22 +76,24 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
-            if (!MatchmakingModule.CanJoinQueue || MatchmakingModule.Queueing)
+            if (MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Idle)
             {
-                if(MatchmakingModule.MatchPlaying)
+                if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.GameInProgress || MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.GameSetup)
                 {
                     await ctx.RespondAsync("A match is currently being played, please wait until the match concludes.");
                 }
-                else if(MatchmakingModule.Queueing)
+                else if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Queueing)
                 {
                     await ctx.RespondAsync("A queue already exists. Use `>queue` to join the game.");
+                }
+                else if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.DisplayingResults)
+                {
+                    await ctx.RespondAsync("The results for the previous game are being calculated. Please wait for it to finish before starting a new queue.");
                 }
                 return;
             }
 
-            MatchmakingModule.Queueing = true;
-            MatchmakingModule.WasReset = false;
-            MatchmakingModule.CanJoinQueue = true;
+            MatchmakingModule.CurrentGameState = MatchmakingModule.MatchmakingState.Queueing;
             MatchmakingModule.PlayersInQueue.Clear();
 
             MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
@@ -129,13 +131,18 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
-            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
+            if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
             {
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
             }
+            else if (MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing)
+            {
+                await ctx.RespondAsync("A game is already being played, you cannot join this queue.");
+                return;
+            }
 
-            if(MatchmakingModule.Bets.ContainsKey(ctx.Member.Id.ToString()))
+            if (MatchmakingModule.Bets.ContainsKey(ctx.Member.Id.ToString()))
             {
                 await ctx.RespondAsync("Your bet of " + MatchmakingModule.Bets[ctx.Member.Id.ToString()] + " SquidCoin has been removed.");
                 MatchmakingModule.Bets.Remove(ctx.Member.Id.ToString());
@@ -143,22 +150,25 @@ namespace SquidBot_Sharp.Commands
 
             await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
-            bool isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Member);
-
-            if(isFull)
-            {
-                MatchmakingModule.CanJoinQueue = false;
-            }
+            await MatchmakingModule.JoinQueue(ctx, ctx.Member);
         }
 
         [Command("leavequeue"), Description("Leave CS:GO play session")]
         [Aliases("lq")]
         public async Task LeaveQueue(CommandContext ctx)
         {
-            if (!MatchmakingModule.CanJoinQueue)
+            if (MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing)
             {
-                await ctx.RespondAsync("There is no existing queue to leave.");
-                return;
+                if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
+                {
+                    await ctx.RespondAsync("There is no existing queue to leave.");
+                    return;
+                }
+                else
+                {
+                    await ctx.RespondAsync("A match is already ongoing, it cannot be left or joined.");
+                    return;
+                }
             }
 
             await MatchmakingModule.LeaveQueue(ctx, ctx.Member);
@@ -183,12 +193,12 @@ namespace SquidBot_Sharp.Commands
         [Aliases("spec")]
         public async Task Spectate(CommandContext ctx)
         {
-            if(MatchmakingModule.MatchPlaying && !MatchmakingModule.SelectingMap)
+            if(MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing && MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.GameSetup)
             {
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;
             }
-            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
+            if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
             {
                 await ctx.RespondAsync("There is no queue to spectate.");
                 return;
@@ -226,7 +236,7 @@ namespace SquidBot_Sharp.Commands
         [Command("bet"), Description("Bet SquidCoin on a match")]
         public async Task SquidCoinBet(CommandContext ctx, long amount, string userToBetOn = "")
         {
-            if (!MatchmakingModule.CanJoinQueue || !MatchmakingModule.Queueing)
+            if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
             {
                 await ctx.RespondAsync("There is no game to bet on.");
                 return;
@@ -315,7 +325,7 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("You are not authorized to use this");
                 return;
             }
-            if (!MatchmakingModule.CanJoinQueue)
+            if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
             {
                 await ctx.RespondAsync("There is no existing queue to join. Use `>startqueue` to start your own queue.");
                 return;
@@ -330,10 +340,9 @@ namespace SquidBot_Sharp.Commands
                 219353394115117056
             };
 
-            bool isFull = false;
-            for (int i = 0; i < amount; i++)
+            for (int i = 0; i < MathF.Min(ids.Length, amount); i++)
             {
-                isFull = await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[ids[i]]);
+                await MatchmakingModule.JoinQueue(ctx, ctx.Guild.Members[ids[i]]);
             }
         }
 
@@ -342,7 +351,7 @@ namespace SquidBot_Sharp.Commands
         {
             if(MatchmakingModule.PlayersInQueue[0].Id == ctx.User.Id || MatchmakingModule.PlayersInQueue[0].Id == 66318815247466496)
             {
-                if(MatchmakingModule.MatchPlaying)
+                if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.GameInProgress)
                 {
                     var localrcon = RconInstance.RconModuleInstance;
                     await localrcon.RconCommand("sc1", $"host_workshop_map {MatchmakingModule.CurrentMapID}");
