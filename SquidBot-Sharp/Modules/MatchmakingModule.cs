@@ -49,7 +49,6 @@ namespace SquidBot_Sharp.Modules
         public static bool CaptainPick = false;
         public static ulong CurrentMapID;
         public static bool BettingAllowed { get; private set; } = false;
-        public static bool WasReset = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
         private static PlayerTeamMatch? currentWinner = null;
@@ -61,7 +60,7 @@ namespace SquidBot_Sharp.Modules
         {
             await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
 
-            if (CurrentGameState == MatchmakingState.Queueing && !WasReset)
+            if (CurrentGameState == MatchmakingState.Queueing)
             {
                 await Reset();
                 await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
@@ -70,7 +69,6 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task Reset()
         {
-            WasReset = true;
             CurrentGameState = MatchmakingState.Idle;
             BettingAllowed = false;
             PlayersInQueue.Clear();

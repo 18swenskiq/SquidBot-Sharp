@@ -76,7 +76,6 @@ namespace SquidBot_Sharp.Commands
             }
 
             MatchmakingModule.CurrentGameState = MatchmakingModule.MatchmakingState.Queueing;
-            MatchmakingModule.WasReset = false;
             MatchmakingModule.PlayersInQueue.Clear();
 
             MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
