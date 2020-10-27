@@ -720,7 +720,7 @@ namespace SquidBot_Sharp.Modules
             var matchembed = new DiscordEmbedBuilder
             {
                 Color = new DiscordColor(0x3277a8),
-                Title = $"Server Ready!",
+                Title = $"Server Ready! Match ID: {lastmatchid + 1}",
                 Description = $"Connect Information: `connect sc1.quintonswenski.com`",
                 Timestamp = DateTime.UtcNow,
                 ImageUrl = iteminfo[0].PreviewURL,
@@ -740,6 +740,7 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool adjustSquidCoin = true)
         {
+            int updatedmatchid = matchId;
             int currentSeconds = 0;
             while (true)
             {
@@ -750,6 +751,13 @@ namespace SquidBot_Sharp.Modules
                 {
                     break;
                 }
+                currentstatus = await DatabaseModule.HasMatchEnded(matchId + 1);
+                if (currentstatus)
+                {
+                    updatedmatchid = matchId + 1;
+                    break;
+                }
+
                 await Task.Delay(FREQUENCY_TO_CHECK_FOR_POSTGAME * 1000);
                 currentSeconds += FREQUENCY_TO_CHECK_FOR_POSTGAME;
                 if(currentSeconds >= SECONDS_IN_ALLOW_BETTING)
@@ -783,7 +791,7 @@ namespace SquidBot_Sharp.Modules
 
             await Task.Delay(5000);
 
-            var statsembed = await UpdateStatsPostGame(ctx, team1, team2, matchId, team1Name, team2Name);
+            var statsembed = await UpdateStatsPostGame(ctx, team1, team2, updatedmatchid, team1Name, team2Name);
 
             //Award SquidCoin for playing or spectating.
             if(adjustSquidCoin)
