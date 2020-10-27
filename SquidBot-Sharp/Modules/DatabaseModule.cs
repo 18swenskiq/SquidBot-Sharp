@@ -66,6 +66,10 @@ namespace SquidBot_Sharp.Modules
         public static async Task<PlayerData> GetPlayerMatchmakingStats(string playerId)
         {
             var dbresult = await GetDataRowCollection($"SELECT DisplayName, PlayerID, CurrentELO, GamesWon, GamesLost, RoundsWon, RoundsLost, KillCount, AssistCount, DeathCount, Headshots, MVPCount FROM MatchmakingStats WHERE PlayerID='{playerId}';");
+            if(dbresult.Count == 0)
+            {
+                return new PlayerData() { ID = null };
+            }
             return new PlayerData
             {
                 Name = ExtractRowInfo<string>(dbresult[0], 0),
@@ -96,14 +100,11 @@ namespace SquidBot_Sharp.Modules
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
             var dbresult = await GetDataRowCollection($"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';");
-            try
+            if(dbresult.Count == 0)
             {
-                return ExtractRowInfo<string>(dbresult[0], 0);
+                return string.Empty;
             }
-            catch (Exception ex)
-            {
-                return "";
-            }
+            return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
         public static async Task<List<string>> GetAllMapNames()
@@ -120,6 +121,10 @@ namespace SquidBot_Sharp.Modules
         public static async Task<string> GetMapIDFromName(string name)
         {
             var dbresult = await GetDataRowCollection($"SELECT SteamID FROM MapData WHERE MapName='{name}';");
+            if (dbresult.Count == 0)
+            {
+                return string.Empty;
+            }
             return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
