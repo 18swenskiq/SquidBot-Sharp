@@ -22,6 +22,24 @@ namespace SquidBot_Sharp.Commands
             var test = await DatabaseModule.HasMatchEnded(60);
         }
 
+        [Command("maptoggle"), Description("Toggles the availability of a map")]
+        public async Task MapToggle(CommandContext ctx, [RemainingText]string mapname)
+        {
+            var result = await DatabaseModule.MapToggle(mapname);
+            if(result == -1)
+            {
+                await ctx.RespondAsync("Map could not be found in the database");
+            }
+            if(result == 0)
+            {
+                await ctx.RespondAsync("Map was enabled!");
+            }
+            if(result == 1)
+            {
+                await ctx.RespondAsync("Map was disabled!");
+            }
+        }
+
         [Command("squidcup"), Description("Toggle the SquidCup role")]
         public async Task SquidCoinCheck(CommandContext ctx)
         {
