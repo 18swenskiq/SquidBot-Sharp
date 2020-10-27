@@ -152,6 +152,10 @@ namespace SquidBot_Sharp.Modules
         public static async Task<long> GetPlayerSquidCoin(string discordId)
         {
             var dbresult = await GetDataRowCollection($"SELECT Coins FROM SquidCoinStats WHERE PlayerID='{discordId}';");
+            if(dbresult.Count == 0)
+            {
+                return 0;
+            }
             long? longresult = ExtractRowInfo<long?>(dbresult[0], 0); 
             return (long)longresult;
         }
