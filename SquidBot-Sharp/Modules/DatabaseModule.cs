@@ -96,7 +96,14 @@ namespace SquidBot_Sharp.Modules
         public static async Task<string> GetPlayerSteamIDFromDiscordID(string discordID)
         {
             var dbresult = await GetDataRowCollection($"SELECT SteamID FROM IDLink WHERE DiscordID='{discordID}';");
-            return ExtractRowInfo<string>(dbresult[0], 0);
+            try
+            {
+                return ExtractRowInfo<string>(dbresult[0], 0);
+            }
+            catch (Exception ex)
+            {
+                return "";
+            }
         }
 
         public static async Task<List<string>> GetAllMapNames()
