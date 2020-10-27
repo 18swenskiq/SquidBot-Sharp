@@ -194,6 +194,58 @@ namespace SquidBot_Sharp.Modules
             await DBExecuteNonQuery("INSERT INTO SquidCoinStats(PlayerID, Coins) VALUES(@discordId, @coin);", payload);
         }
 
+        public static async Task AddBet(string discordId, string playerName, string betOnId, long amount, long matchId, bool won)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                {"@discordId", discordId },
+                {"@playerName", playerName },
+                {"@betOnId", betOnId },
+                {"@betAmount", amount },
+                {"@matchId", matchId },
+                {"@won", won ? (byte)1 : (byte)0 },
+            };
+            await DBExecuteNonQuery("INSERT INTO BetStats(PlayerID, PlayerName, BetOnID, BetAmount, MatchID, WonBet) VALUES(@discordId, @playerName, @betOnId, @betAmount, @matchId, @won);", payload);
+        }
+
+        public static async Task<Dictionary<string, MatchmakingModule.BetData>> GetBetsFromMatch(long matchId)
+        {
+            var dbresult = await GetDataRowCollection($"SELECT PlayerID, BetOnID, BetAmount, PlayerName FROM BetStats WHERE MatchID='{matchId}';");
+            Dictionary<string, MatchmakingModule.BetData> betData = new Dictionary<string, MatchmakingModule.BetData>();
+            foreach (DataRow item in dbresult)
+            {
+                betData.Add(ExtractRowInfo<string>(item, 0),
+                    new MatchmakingModule.BetData()
+                    {
+                        UserToBetOn = ExtractRowInfo<string>(item, 1),
+                        BetAmount = ExtractRowInfo<long>(item, 2),
+                        Name = ExtractRowInfo<string>(item, 3)
+                    });
+            }
+            return betData;
+        }
+
+        public static async Task AddSpectator(string discordId, long matchId)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                {"@discordId", discordId },
+                {"@matchId", matchId },
+            };
+            await DBExecuteNonQuery("INSERT INTO MatchSpectatorStats(PlayerID, MatchID) VALUES(@discordId, @matchId);", payload);
+        }
+
+        public static async Task<List<string>> GetSpectatorsFromMatch(long matchId)
+        {
+            var dbresult = await GetDataRowCollection($"SELECT PlayerID FROM MatchSpectatorStats WHERE MatchID='{matchId}';");
+            List<string> idList = new List<string>();
+            foreach (DataRow item in dbresult)
+            {
+                idList.Add(ExtractRowInfo<string>(item, 0));
+            }
+            return idList;
+        }
+
         public static async Task DeleteSquidCoinPlayer(string discordId)
         {
             await DBExecuteNonQuery($"DELETE FROM SquidCoinStats WHERE PlayerID='{discordId}';", null);

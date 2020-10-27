@@ -729,7 +729,7 @@ namespace SquidBot_Sharp.Modules
         }
 
 
-        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool adjustSquidCoin = true)
+        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
         {
             int updatedmatchid = matchId;
             int currentSeconds = 0;
@@ -787,26 +787,24 @@ namespace SquidBot_Sharp.Modules
             var statsembed = await UpdateStatsPostGame(ctx, team1, team2, updatedmatchid, team1Name, team2Name);
 
             //Award SquidCoin for playing or spectating.
-            if(adjustSquidCoin)
+            await AwardSquidCoin(team1[0].ID, SQUID_COIN_REWARD_PLAY);
+            await AwardSquidCoin(team1[1].ID, SQUID_COIN_REWARD_PLAY);
+            await AwardSquidCoin(team2[0].ID, SQUID_COIN_REWARD_PLAY);
+            await AwardSquidCoin(team2[1].ID, SQUID_COIN_REWARD_PLAY);
+
+            statsembed.Description = "SquidCoin Awards\n\n";
+            statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
+            statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
+            statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
+            statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
+
+            //Add squidcoin for spectators (Should we verify they joined somehow?)
+            for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
             {
-                //Add squidcoin for players
-                await AwardSquidCoin(team1[0].ID, SQUID_COIN_REWARD_PLAY);
-                await AwardSquidCoin(team1[1].ID, SQUID_COIN_REWARD_PLAY);
-                await AwardSquidCoin(team2[0].ID, SQUID_COIN_REWARD_PLAY);
-                await AwardSquidCoin(team2[1].ID, SQUID_COIN_REWARD_PLAY);
+                await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
+                await DatabaseModule.AddSpectator(CurrentSpectatorDiscordIds[i], matchId);
 
-                statsembed.Description = "SquidCoin Awards\n\n";
-                statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
-                statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
-                statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
-                statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
-
-                //Add squidcoin for spectators (Should we verify they joined somehow?)
-                for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
-                {
-                    statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
-                    await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
-                }
+                statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
             }
 
             taskMsg = ctx.RespondAsync(embed: statsembed);
@@ -815,16 +813,16 @@ namespace SquidBot_Sharp.Modules
             await taskMsg;
 
             //Award SquidCoin for bets
-            if(adjustSquidCoin && Bets.Count > 0)
+            if(Bets.Count > 0)
             {
-                await HandleBetResults(ctx, mapName);
+                await HandleBetResults(ctx, mapName, matchId);
             }
 
             await Reset();
             await localrcon.WakeRconServer("sc1");
         }
 
-        public static async Task HandleBetResults(CommandContext ctx, string mapName)
+        public static async Task HandleBetResults(CommandContext ctx, string mapName, long matchId)
         {
             string winnerText = currentWinner == null ? "TIE" : currentWinner.Value.TeamName;
             var betEmbed = new DiscordEmbedBuilder
@@ -845,6 +843,8 @@ namespace SquidBot_Sharp.Modules
                     string idOfBet = Bets[betUser].UserToBetOn;
                     bool wonBet = currentWinner.Value.Player1.ID == idOfBet || currentWinner.Value.Player2.ID == idOfBet;
                     long change = wonBet ? ((long)(Bets[betUser].BetAmount * SQUID_COIN_BET_WIN)) - Bets[betUser].BetAmount : Bets[betUser].BetAmount;
+
+                    await DatabaseModule.AddBet(betUser, Bets[betUser].Name, idOfBet, Bets[betUser].BetAmount, matchId, wonBet);
 
                     await AwardSquidCoin(betUser, wonBet ? change : -change);
 
@@ -886,12 +886,16 @@ namespace SquidBot_Sharp.Modules
 
                     List<string> teamNames = await DatabaseModule.GetTeamNamesFromMatch(currentMatchId);
 
-                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1], adjustSquidCoin: false);
+                    CurrentSpectatorDiscordIds = await DatabaseModule.GetSpectatorsFromMatch(currentMatchId);
+                    Bets = await DatabaseModule.GetBetsFromMatch(currentMatchId);
+
+                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1]);
 
                 }
                 currentMatchId++;
             }
 
+            await Reset();
             await ctx.RespondAsync("All matches recalculated.");
         }
 
