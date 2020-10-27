@@ -494,8 +494,9 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> allMapNames)
+        private static async Task<string> StartAllPickMapSelection(CommandContext ctx)
         {
+            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
             if (PreviousMessage != null)
             {
                 await PreviousMessage.DeleteAsync();
@@ -575,7 +576,7 @@ namespace SquidBot_Sharp.Modules
                 var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
                 if (PlayersInQueue.Contains(userinput.Result.Author) && !playerSelections.Keys.Contains(userinput.Result.Author))
                 {
-                    var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(allMapNames, userinput.Result.Content);
+                    var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(allMapNamesIncludingDisabled, userinput.Result.Content);
                     if (mapselectresult)
                     {
                         playerSelections.Add(userinput.Result.Author, userinput.Result.Content);
@@ -592,8 +593,9 @@ namespace SquidBot_Sharp.Modules
             return playerSelections.ElementAt(mapselectindex).Value;
         }
 
-        private static async Task<string> StartLeaderPickMapSelection(CommandContext ctx, List<string> allMapNames)
+        private static async Task<string> StartLeaderPickMapSelection(CommandContext ctx)
         {
+            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
             await ctx.RespondAsync($"{PlayersInQueue[0].Nickname}, please type the name of a map to play!");
             var interactivity = ctx.Client.GetInteractivity();
             while (true)
@@ -601,7 +603,7 @@ namespace SquidBot_Sharp.Modules
                 var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
                 if (userinput.Result.Author == PlayersInQueue[0])
                 {
-                    var boolresult = GeneralUtil.ListContainsCaseInsensitive(allMapNames, userinput.Result.Content);
+                    var boolresult = GeneralUtil.ListContainsCaseInsensitive(allMapNamesIncludingDisabled, userinput.Result.Content);
                     if (boolresult)
                     {
                         return userinput.Result.Content;

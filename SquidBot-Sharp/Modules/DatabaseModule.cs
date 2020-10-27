@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
+using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using MySql.Data.MySqlClient;
 using SquidBot_Sharp.Commands;
@@ -51,6 +52,34 @@ namespace SquidBot_Sharp.Modules
             }
             return;
         } 
+
+        public static async Task<int> MapToggle(string mapname)
+        {
+            var maplist = await GetAllMapNames();
+            if(!GeneralUtil.ListContainsCaseInsensitive(maplist, mapname))
+            {
+                return -1;
+            }
+            var dbresult = await GetDataRowCollection($"SELECT Enabled FROM MapData WHERE MapName='{mapname}'");
+            if (ExtractRowInfo<byte>(dbresult[0], 0) == 0)
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    {"@var1", 1}
+                };
+                await DBExecuteNonQuery($"UPDATE MapData SET enabled = @var1 WHERE MapName='{mapname}'", payload);
+                return 0;
+            }
+            else
+            {
+                var payload = new Dictionary<string, object>
+                {
+                    {"@var1", 0}
+                };
+                await DBExecuteNonQuery($"UPDATE MapData SET enabled = @var1 WHERE MapName='{mapname}'", payload);
+                return 1;
+            }
+        }
 
         public static async Task<List<string>> GetUserMessages(ulong userID)
         {
@@ -107,9 +136,17 @@ namespace SquidBot_Sharp.Modules
             return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
-        public static async Task<List<string>> GetAllMapNames()
+        public static async Task<List<string>> GetAllMapNames(bool getdisabled = false)
         {
-            var dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData;");
+            DataRowCollection dbresult;
+            if(!getdisabled)
+            {
+                dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData WHERE Enabled=1;");
+            }
+            else
+            {
+                dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData;");
+            }
             List<string> results = new List<string>();
             foreach(DataRow item in dbresult)
             {
