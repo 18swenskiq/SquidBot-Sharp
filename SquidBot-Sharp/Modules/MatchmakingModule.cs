@@ -61,7 +61,7 @@ namespace SquidBot_Sharp.Modules
         {
             await Task.Delay(1000 * SECONDS_UNTIL_TIMEOUT);
 
-            if (CurrentGameState != MatchmakingState.Queueing && !WasReset)
+            if (CurrentGameState == MatchmakingState.Queueing && !WasReset)
             {
                 await Reset();
                 await ctx.RespondAsync("CS:GO session queue timed out after " + SECONDS_UNTIL_TIMEOUT + " seconds with no joins");
