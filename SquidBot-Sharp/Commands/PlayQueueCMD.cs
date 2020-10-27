@@ -49,7 +49,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
-        [Aliases("sq")]
+        [Aliases("sq", "startq")]
         public async Task Play(CommandContext ctx, string extra = "")
         {
             if(!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
