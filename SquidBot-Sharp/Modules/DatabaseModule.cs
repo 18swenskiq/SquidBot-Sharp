@@ -136,9 +136,17 @@ namespace SquidBot_Sharp.Modules
             return ExtractRowInfo<string>(dbresult[0], 0);
         }
 
-        public static async Task<List<string>> GetAllMapNames()
+        public static async Task<List<string>> GetAllMapNames(bool getdisabled = false)
         {
-            var dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData;");
+            DataRowCollection dbresult;
+            if(!getdisabled)
+            {
+                dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData WHERE Enabled=1;");
+            }
+            else
+            {
+                dbresult = await GetDataRowCollection($"SELECT MapName FROM MapData;");
+            }
             List<string> results = new List<string>();
             foreach(DataRow item in dbresult)
             {

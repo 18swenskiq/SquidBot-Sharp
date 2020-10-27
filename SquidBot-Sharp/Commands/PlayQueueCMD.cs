@@ -22,7 +22,7 @@ namespace SquidBot_Sharp.Commands
             var test = await DatabaseModule.HasMatchEnded(60);
         }
 
-        [Command("maptoggle"), Description("Toggles the availability of a map")]
+        [Command("maptoggle"), Description("Toggles the availability of a map"), RequireOwner]
         public async Task MapToggle(CommandContext ctx, [RemainingText]string mapname)
         {
             var result = await DatabaseModule.MapToggle(mapname);
