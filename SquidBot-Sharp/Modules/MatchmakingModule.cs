@@ -1,6 +1,7 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.VisualBasic.CompilerServices;
 using Newtonsoft.Json;
 using SquidBot_Sharp.Utilities;
