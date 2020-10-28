@@ -372,9 +372,9 @@ namespace SquidBot_Sharp.Modules
 
                     return await StartRandomVetoMapSelection(ctx, sendMapOptions, captain, enemyCaptain, playerIds);
                 case MapSelectionType.AllPick:
-                    return await StartAllPickMapSelection(ctx, allMapNames);
+                    return await StartAllPickMapSelection(ctx);
                 case MapSelectionType.LeaderPick:
-                    return await StartLeaderPickMapSelection(ctx, allMapNames);
+                    return await StartLeaderPickMapSelection(ctx);
                 case MapSelectionType.CompletelyRandomPick:
                     return StartRandomMapSelection(ctx, allMapNames);
             }
@@ -731,7 +731,7 @@ namespace SquidBot_Sharp.Modules
         }
 
 
-        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
+        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool recalculate = false)
         {
             int updatedmatchid = matchId;
             int currentSeconds = 0;
@@ -804,7 +804,10 @@ namespace SquidBot_Sharp.Modules
             for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
             {
                 await AwardSquidCoin(CurrentSpectatorDiscordIds[i], SQUID_COIN_REWARD_SPECTATE);
-                await DatabaseModule.AddSpectator(CurrentSpectatorDiscordIds[i], matchId);
+                if(!recalculate)
+                {
+                    await DatabaseModule.AddSpectator(CurrentSpectatorDiscordIds[i], matchId);
+                }
 
                 statsembed.Description += CurrentSpectatorNames[i] + ": +" + SQUID_COIN_REWARD_SPECTATE + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(CurrentSpectatorDiscordIds[i]) + ")\n";
             }
@@ -817,14 +820,14 @@ namespace SquidBot_Sharp.Modules
             //Award SquidCoin for bets
             if(Bets.Count > 0)
             {
-                await HandleBetResults(ctx, mapName, matchId);
+                await HandleBetResults(ctx, mapName, matchId, recalculate);
             }
 
             await Reset();
             await localrcon.WakeRconServer("sc1");
         }
 
-        public static async Task HandleBetResults(CommandContext ctx, string mapName, long matchId)
+        public static async Task HandleBetResults(CommandContext ctx, string mapName, long matchId, bool recalculate)
         {
             string winnerText = currentWinner == null ? "TIE" : currentWinner.Value.TeamName;
             var betEmbed = new DiscordEmbedBuilder
@@ -846,7 +849,10 @@ namespace SquidBot_Sharp.Modules
                     bool wonBet = currentWinner.Value.Player1.ID == idOfBet || currentWinner.Value.Player2.ID == idOfBet;
                     long change = wonBet ? ((long)(Bets[betUser].BetAmount * SQUID_COIN_BET_WIN)) - Bets[betUser].BetAmount : Bets[betUser].BetAmount;
 
-                    await DatabaseModule.AddBet(betUser, Bets[betUser].Name, idOfBet, Bets[betUser].BetAmount, matchId, wonBet);
+                    if(!recalculate)
+                    {
+                        await DatabaseModule.AddBet(betUser, Bets[betUser].Name, idOfBet, Bets[betUser].BetAmount, matchId, wonBet);
+                    }
 
                     await AwardSquidCoin(betUser, wonBet ? change : -change);
 
@@ -861,11 +867,11 @@ namespace SquidBot_Sharp.Modules
             await ctx.RespondAsync(embed: betEmbed);
         }
 
-        public static async Task RecalculateAllElo(CommandContext ctx, Dictionary<string, string> steamIdToPlayerId)
+        public static async Task RecalculateAllElo(CommandContext ctx, Dictionary<string, string> steamIdToPlayerId, int startFrom)
         {
             int lastMatchId = await DatabaseModule.GetLastMatchID();
 
-            int currentMatchId = 1;
+            int currentMatchId = startFrom;
             while (currentMatchId <= lastMatchId)
             {
                 if (await DatabaseModule.HasMatchEnded(currentMatchId))
@@ -889,9 +895,14 @@ namespace SquidBot_Sharp.Modules
                     List<string> teamNames = await DatabaseModule.GetTeamNamesFromMatch(currentMatchId);
 
                     CurrentSpectatorDiscordIds = await DatabaseModule.GetSpectatorsFromMatch(currentMatchId);
+                    CurrentSpectatorNames = new List<string>();
+                    for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
+                    {
+                        CurrentSpectatorNames.Add("Some loser with the ID of: " + CurrentSpectatorDiscordIds[i]);
+                    }
                     Bets = await DatabaseModule.GetBetsFromMatch(currentMatchId);
 
-                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1]);
+                    await MatchPostGame(ctx, currentMatchId, "WhoCares", playersTeam1, playersTeam2, teamNames[0], teamNames[1], true);
 
                 }
                 currentMatchId++;

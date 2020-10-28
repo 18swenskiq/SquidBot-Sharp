@@ -383,7 +383,7 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("Recalculate"), Description("Join CS:GO play session")]
-        public async Task Recalculate(CommandContext ctx)
+        public async Task Recalculate(CommandContext ctx, int startFrom = 1)
         {
             if(!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
             {
@@ -410,8 +410,14 @@ namespace SquidBot_Sharp.Commands
                 await DatabaseModule.AddPlayerMatchmakingStat(player);
             }
 
+            List<string> squidCoinIds = await DatabaseModule.GetPlayerSquidIds();
+            for (int i = 0; i < squidCoinIds.Count; i++)
+            {
+                await DatabaseModule.DeleteSquidCoinPlayer(squidCoinIds[i]);
+            }
+
             //Go through all the matches and recalculate their ELO
-            await MatchmakingModule.RecalculateAllElo(ctx, steamIdToPlayerId);
+            await MatchmakingModule.RecalculateAllElo(ctx, steamIdToPlayerId, startFrom);
         }
 
         [Command("register"), Description("Register SteamID for games")]
