@@ -372,9 +372,9 @@ namespace SquidBot_Sharp.Modules
 
                     return await StartRandomVetoMapSelection(ctx, sendMapOptions, captain, enemyCaptain, playerIds);
                 case MapSelectionType.AllPick:
-                    return await StartAllPickMapSelection(ctx, allMapNames);
+                    return await StartAllPickMapSelection(ctx);
                 case MapSelectionType.LeaderPick:
-                    return await StartLeaderPickMapSelection(ctx, allMapNames);
+                    return await StartLeaderPickMapSelection(ctx);
                 case MapSelectionType.CompletelyRandomPick:
                     return StartRandomMapSelection(ctx, allMapNames);
             }
