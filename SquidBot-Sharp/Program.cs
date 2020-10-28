@@ -114,13 +114,13 @@ namespace SquidBot_Sharp
             var RCONinstance = new RconModule();
             RconInstance.RconModuleInstance = RCONinstance;
 
-            _client.Logger.LogInformation("MechaSquidski", "Setting up database connections", DateTime.Now);
+            _client.Logger.LogInformation($"MechaSquidski | Setting up database connections", DateTime.Now);
             // Database related startup operations
             DatabaseModule.SetUpMySQLConnection(SettingsFile.databaseserver, SettingsFile.databasename, SettingsFile.databaseusername, SettingsFile.databasepassword);
 
             // Initiate timer for recurring tasks
             _timer = new Timer(Tick, null, TIMER_INTERVAL, Timeout.Infinite);
-            _client.Logger.LogInformation("MechaSquidski", "Timer object for recurring tasks initiated", DateTime.Now);
+            _client.Logger.LogInformation($"MechaSquidski | Timer object for recurring tasks initiated", DateTime.Now);
 
             await _client.ConnectAsync();
 
@@ -131,7 +131,7 @@ namespace SquidBot_Sharp
 
         private Task Client_Ready(DiscordClient s, ReadyEventArgs e)
         {
-            _client.Logger.LogInformation("MechaSquidski", "Client is ready to process events.", DateTime.Now);
+            _client.Logger.LogInformation($"MechaSquidski | Client is ready to process events.", DateTime.Now);
 
             return Task.CompletedTask;
         }
@@ -140,7 +140,7 @@ namespace SquidBot_Sharp
         {
             // Perform tasks every minute
             // Update status
-            _client.Logger.LogInformation("MechaSquidski", "Updating status", DateTime.Now);
+            _client.Logger.LogInformation($"MechaSquidski | Updating status", DateTime.Now);
             var nextpayload = _activities.GetNextActivity();
             if (nextpayload.Status.Contains("NUMBER_GUILDS")) nextpayload.Status = nextpayload.Status.Replace("NUMBER_GUILDS", _client.Guilds.Count.ToString());
             await _client.UpdateStatusAsync(new DiscordActivity(nextpayload.Status, nextpayload.ActType));
@@ -150,15 +150,15 @@ namespace SquidBot_Sharp
             if (DateTimeComparison.Hour == BACKUP_TIME_HOUR && DateTimeComparison.Minute == 0)
             {
                 // If we've made it here, its time to automatically backup the database
-                _client.Logger.LogInformation("MechaSquidski", "Starting automatic database backup...", DateTime.Now);
+                _client.Logger.LogInformation($"MechaSquidski | Starting automatic database backup...", DateTime.Now);
                 await DatabaseModule.BackupDatabase();
                 if(DatabaseModule.HitException != null)
                 {
-                    _client.Logger.LogWarning("MechaSquidski", $"Database could not be backed up due to {DatabaseModule.HitException.Message}", DateTime.Now);
+                    _client.Logger.LogWarning($"MechaSquidski | Database could not be backed up due to {DatabaseModule.HitException.Message}", DateTime.Now);
                 }
                 else
                 {
-                    _client.Logger.LogInformation("MechaSquidski", "Automatic database backup successful", DateTime.Now);
+                    _client.Logger.LogInformation($"MechaSquidski | Automatic database backup successful", DateTime.Now);
                 }
             }
 
@@ -184,28 +184,28 @@ namespace SquidBot_Sharp
 
         private Task Client_GuildAvailable(DiscordClient s, GuildCreateEventArgs e)
         {
-            _client.Logger.LogInformation("MechaSquidski", $"Guild available: {e.Guild.Name}", DateTime.Now);
+            _client.Logger.LogInformation($"MechaSquidski | Guild available: {e.Guild.Name}", DateTime.Now);
 
             return Task.CompletedTask;
         }
 
         private Task Client_ClientError(DiscordClient s, ClientErrorEventArgs e)
         {
-            _client.Logger.LogError("MechaSquidski", $"Exception occured: {e.Exception.GetType()}: {e.Exception.Message}", DateTime.Now);
+            _client.Logger.LogError($"MechaSquidski | Exception occured: {e.Exception.GetType()}: {e.Exception.Message}", DateTime.Now);
 
             return Task.CompletedTask;
         }
 
         private Task Commands_CommandExecuted(CommandsNextExtension c, CommandExecutionEventArgs e)
         {
-            e.Context.Client.Logger.LogInformation("MechaSquidski", $"{e.Context.User.Username} successfully executed '{e.Command.QualifiedName}' in {e.Context.Guild.Name} (#{e.Context.Guild.Id})", DateTime.Now);
+            e.Context.Client.Logger.LogInformation($"MechaSquidski | {e.Context.User.Username} successfully executed '{e.Command.QualifiedName}' in {e.Context.Guild.Name} (#{e.Context.Guild.Id})", DateTime.Now);
 
             return Task.CompletedTask;
         }
 
         private async Task Commands_CommandErrored(CommandsNextExtension c, CommandErrorEventArgs e)
         {
-            e.Context.Client.Logger.LogError("MechaSquidski", $"{e.Context.User.Username} tried executing '{e.Command?.QualifiedName ?? "<unknown command>"}' in {e.Context.Guild.Name} (#{e.Context.Guild.Id}) but it errored: {e.Exception.GetType()}: {e.Exception.Message ?? "<no message>"}", DateTime.Now);
+            e.Context.Client.Logger.LogError($"MechaSquidski | {e.Context.User.Username} tried executing '{e.Command?.QualifiedName ?? "<unknown command>"}' in {e.Context.Guild.Name} (#{e.Context.Guild.Id}) but it errored: {e.Exception.GetType()}: {e.Exception.Message ?? "<no message>"}", DateTime.Now);
 
             if (e.Exception is ChecksFailedException ex)
             {
