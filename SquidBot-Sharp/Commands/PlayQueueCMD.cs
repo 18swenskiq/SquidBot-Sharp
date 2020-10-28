@@ -23,8 +23,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("maptoggle"), Description("Toggles the availability of a map"), RequireOwner]
+        [RequireGuild]
         public async Task MapToggle(CommandContext ctx, [RemainingText]string mapname)
         {
+            if(ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             var result = await DatabaseModule.MapToggle(mapname);
             if(result == -1)
             {
@@ -41,8 +47,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("squidcup"), Description("Toggle the SquidCup role")]
+        [RequireGuild]
         public async Task SquidCoinCheck(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             bool hasRole = false;
             foreach(var role in ctx.Member.Roles)
             {
@@ -68,9 +80,15 @@ namespace SquidBot_Sharp.Commands
 
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq", "startq")]
+        [RequireGuild]
         public async Task Play(CommandContext ctx, string extra = "")
         {
-            if(!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
                 await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register id` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
                 return;
@@ -106,8 +124,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("stopqueue"), Description("Ends CS:GO play queue")]
+        [RequireGuild]
         public async Task StopQueue(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             bool isHost = MatchmakingModule.IsPlayerHost(ctx.Member);
             if(isHost)
             {
@@ -123,8 +147,14 @@ namespace SquidBot_Sharp.Commands
 
         [Command("queue"), Description("Join CS:GO play session")]
         [Aliases("q")]
+        [RequireGuild]
         public async Task Queue(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
                 await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register [id]` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
@@ -155,8 +185,14 @@ namespace SquidBot_Sharp.Commands
 
         [Command("leavequeue"), Description("Leave CS:GO play session")]
         [Aliases("lq")]
+        [RequireGuild]
         public async Task LeaveQueue(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             if (MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing)
             {
                 if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
@@ -175,8 +211,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("updatename"), Description("Updates matchmaking name to current nickname")]
+        [RequireGuild]
         public async Task UpdateName(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             bool success = await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 
             if(success)
@@ -191,9 +233,15 @@ namespace SquidBot_Sharp.Commands
 
         [Command("spectate"), Description("Join spectators for current game")]
         [Aliases("spec")]
+        [RequireGuild]
         public async Task Spectate(CommandContext ctx)
         {
-            if(MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing && MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.GameSetup)
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.Queueing && MatchmakingModule.CurrentGameState != MatchmakingModule.MatchmakingState.GameSetup)
             {
                 await ctx.RespondAsync("You cannot join spectators when a game has already started");
                 return;
@@ -218,8 +266,14 @@ namespace SquidBot_Sharp.Commands
 
         [Command("squidcoins"), Description("Check player SquidCoin")]
         [Aliases("squidcoin")]
+        [RequireGuild]
         public async Task SquidCoinCheck(CommandContext ctx, string discordId = "")
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             if (discordId == string.Empty)
             {
                 discordId = ctx.Member.Id.ToString();
@@ -234,8 +288,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("bet"), Description("Bet SquidCoin on a match")]
+        [RequireGuild]
         public async Task SquidCoinBet(CommandContext ctx, long amount, string userToBetOn = "")
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             if (MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.Idle)
             {
                 await ctx.RespondAsync("There is no game to bet on.");
@@ -300,9 +360,15 @@ namespace SquidBot_Sharp.Commands
 
 
         [Command("elo"), Description("Check player elo")]
+        [RequireGuild]
         public async Task Elo(CommandContext ctx, string discordId = "")
         {
-            if(discordId == string.Empty)
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (discordId == string.Empty)
             {
                 discordId = ctx.Member.Id.ToString();
             }
@@ -318,8 +384,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("queuedebug"), Description("Join CS:GO play session")]
+        [RequireGuild]
         public async Task QueueDebug(CommandContext ctx, int amount = 4)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             if (!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
             {
                 await ctx.RespondAsync("You are not authorized to use this");
@@ -347,9 +419,15 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("forcemapchange"), Description("Force a map change on the server")]
+        [RequireGuild]
         public async Task ForceMapChange(CommandContext ctx)
         {
-            if(MatchmakingModule.PlayersInQueue[0].Id == ctx.User.Id || MatchmakingModule.PlayersInQueue[0].Id == 66318815247466496)
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (MatchmakingModule.PlayersInQueue[0].Id == ctx.User.Id || MatchmakingModule.PlayersInQueue[0].Id == 66318815247466496)
             {
                 if(MatchmakingModule.CurrentGameState == MatchmakingModule.MatchmakingState.GameInProgress)
                 {
@@ -370,8 +448,14 @@ namespace SquidBot_Sharp.Commands
 
         [Command("getmaplist"), Description("Get the map list")]
         [Aliases("getmapnames")]
+        [RequireGuild]
         public async Task GetMapList(CommandContext ctx)
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             var result = await DatabaseModule.GetAllMapNames();
             string responsestring = "List of maps available:\n```\n";
             foreach(var item in result)
@@ -385,7 +469,12 @@ namespace SquidBot_Sharp.Commands
         [Command("Recalculate"), Description("Join CS:GO play session")]
         public async Task Recalculate(CommandContext ctx, int startFrom = 1)
         {
-            if(!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (!ctx.Member.Id.ToString().Contains("107967155928088576") && !ctx.Member.Id.ToString().Contains("66318815247466496"))
             {
                 await ctx.RespondAsync("You are not authorized to use this");
                 return;
@@ -421,9 +510,15 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("register"), Description("Register SteamID for games")]
+        [RequireGuild]
         public async Task Register(CommandContext ctx, string steamId = "")
         {
-            if(steamId == string.Empty)
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
+            if (steamId == string.Empty)
             {
                 await ctx.RespondAsync("You need to enter the id. Example: >register 76561198065593279 (Find your Steam ID here: https://steamidfinder.com/)");
                 return;
@@ -464,8 +559,14 @@ namespace SquidBot_Sharp.Commands
 
         [Command("leaderboard"), Description("Display leaderboard")]
         [Aliases("lb")]
+        [RequireGuild]
         public async Task Leaderboard(CommandContext ctx, string parameters = "", string shouldReverse = "")
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             List<PlayerLeaderboardStats> allPlayers = new List<PlayerLeaderboardStats>();
             parameters = parameters.ToLower();
 
@@ -591,8 +692,14 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("gamehelp"), Description("Get help for commands")]
+        [RequireGuild]
         public async Task GameHelp(CommandContext ctx, string specific = "")
         {
+            if (ctx.Guild.Id != 572662006692315136)
+            {
+                await ctx.RespondAsync("Command is not usable within this guild");
+                return;
+            }
             //if(specific == string.Empty)
             {
                 var embed = new DiscordEmbedBuilder
