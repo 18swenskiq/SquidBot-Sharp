@@ -23,11 +23,11 @@ namespace SquidBot_Sharp.Commands
             faceitClient = new FaceitClient(SettingsFile.faceitapikey);
             PlayerDetails stats = null;
             int attemptnumber = 1;
-            RetrySearch:
+        RetrySearch:
             stats = await faceitClient.GetPlayerDetailsFromNickname(username);
-            if(faceitClient.GetStatusCode() == HttpStatusCode.ServiceUnavailable)
+            if (faceitClient.GetStatusCode() == HttpStatusCode.ServiceUnavailable)
             {
-                if(attemptnumber == 6)
+                if (attemptnumber == 6)
                 {
                     await ctx.RespondAsync($"Attempt #5 failed. Retry command later");
                     return;
@@ -36,7 +36,7 @@ namespace SquidBot_Sharp.Commands
                 await Task.Delay(100);
                 goto RetrySearch;
             }
-            if(faceitClient.GetStatusCode() != HttpStatusCode.OK)
+            if (faceitClient.GetStatusCode() != HttpStatusCode.OK)
             {
                 await ctx.RespondAsync("Player could not be found");
                 return;
@@ -48,7 +48,7 @@ namespace SquidBot_Sharp.Commands
                 Description = $"Faceit ID: `{stats.PlayerID}`",
                 Title = $"{stats.Nickname}",
                 Timestamp = DateTime.UtcNow,
-                ThumbnailUrl = stats.Avatar,
+                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = stats.Avatar },
                 Url = stats.FaceitURL,
             };
             embed.AddField("Membership Type", stats.MembershipType);

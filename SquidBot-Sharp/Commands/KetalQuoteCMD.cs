@@ -6,6 +6,7 @@ using SquidBot_Sharp.Modules;
 using System.Threading.Tasks;
 using System.Linq;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 
 namespace SquidBot_Sharp.Commands
 {
