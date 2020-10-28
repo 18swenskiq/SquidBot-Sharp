@@ -391,6 +391,7 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
 
+            await ctx.RespondAsync("Starting recalculation");
             Dictionary<string, string> steamIdToPlayerId = new Dictionary<string, string>();
             //Reset all player ELO first
             List<string> ids = await DatabaseModule.GetPlayerMatchmakingStatsIds();
@@ -408,6 +409,8 @@ namespace SquidBot_Sharp.Commands
 
                 await DatabaseModule.DeletePlayerStats(ids[i]);
                 await DatabaseModule.AddPlayerMatchmakingStat(player);
+
+                await ctx.RespondAsync("Reset player " + player.Name + "'s stats");
             }
 
             List<string> squidCoinIds = await DatabaseModule.GetPlayerSquidIds();
