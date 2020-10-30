@@ -373,7 +373,7 @@ namespace SquidBot_Sharp.Modules
 
                     return await StartRandomVetoMapSelection(ctx, sendMapOptions, captain, enemyCaptain, playerIds);
                 case MapSelectionType.AllPick:
-                    return await StartAllPickMapSelection(ctx);
+                    return await StartAllPickMapSelection(ctx, allMapNames);
                 case MapSelectionType.LeaderPick:
                     return await StartLeaderPickMapSelection(ctx);
                 case MapSelectionType.CompletelyRandomPick:
@@ -495,7 +495,7 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        private static async Task<string> StartAllPickMapSelection(CommandContext ctx)
+        private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> enabledMapNames)
         {
             var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
             if (PreviousMessage != null)
@@ -575,8 +575,16 @@ namespace SquidBot_Sharp.Modules
                 }
 
                 var userinput = await interactivity.WaitForMessageAsync(us => us.Author == us.Author, TimeSpan.FromSeconds(5000));
-                if (PlayersInQueue.Contains(userinput.Result.Author) && !playerSelections.Keys.Contains(userinput.Result.Author))
+                if (PlayersInQueue.Contains(userinput.Result.Author) && !playerSelections.Keys.Contains(userinput.Result.Author) && userinput.Result.Content != ">getmaplist" && userinput.Result.Content != ">getmapnames")
                 {
+                    if(userinput.Result.Content.ToLower() == "random")
+                    {
+                        var randomresult = StartRandomMapSelection(ctx, enabledMapNames);
+                        playerSelections.Add(userinput.Result.Author, randomresult);
+                        updateEmbed = true;
+                        continue;
+                    }
+
                     var mapselectresult = GeneralUtil.ListContainsCaseInsensitive(allMapNamesIncludingDisabled, userinput.Result.Content);
                     if (mapselectresult)
                     {
