@@ -6,6 +6,10 @@
     <RootNamespace>SquidBot_Sharp</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>H:\DriveBackup\squidbot\RUN_THIS\</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00744">
       <GeneratePathProperty></GeneratePathProperty>

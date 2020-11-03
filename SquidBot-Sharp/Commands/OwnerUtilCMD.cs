@@ -36,6 +36,12 @@ namespace SquidBot_Sharp.Commands
             return;
         }
 
+        [Command("restart"), RequireOwner]
+        public async Task Restart(CommandContext ctx)
+        {
+            Environment.Exit(0);
+        }
+
 /*        [Command("uploaduserprofiles"), RequireOwner, Hidden]
         public async Task UploadUserProfiles(CommandContext ctx)
         {
