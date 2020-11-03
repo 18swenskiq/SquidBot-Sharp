@@ -288,8 +288,17 @@ namespace SquidBot_Sharp.Commands
         }
 
         [Command("bet"), Description("Bet SquidCoin on a match")]
+        [Priority(1)]
         [RequireGuild]
-        public async Task SquidCoinBet(CommandContext ctx, long amount, string userToBetOn = "")
+        public async Task SquidCoinBet(CommandContext ctx, DiscordMember memberToBetOn, long amount)
+        {
+            await SquidCoinBet(ctx, amount, memberToBetOn);
+        }
+
+        [Command("bet"), Description("Bet SquidCoin on a match")]
+        [Priority(0)]
+        [RequireGuild]
+        public async Task SquidCoinBet(CommandContext ctx, long amount, DiscordMember memberToBetOn = null)
         {
             if (ctx.Guild.Id != 572662006692315136)
             {
@@ -311,17 +320,13 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("You cannot bet in a game you are playing in.");
                 return;
             }
-            if(userToBetOn == string.Empty)
+            if(memberToBetOn == null)
             {
                 await ctx.RespondAsync("Please select a user to bet on. You may enter their Discord ID or mention them. Example: >bet " + amount + " 107967155928088576");
                 return;
             }
 
-            if(userToBetOn.Contains("<"))
-            {
-                userToBetOn = userToBetOn.Substring(3, userToBetOn.Length - 4);
-            }
-            PlayerData betUser = await DatabaseModule.GetPlayerMatchmakingStats(userToBetOn);
+            PlayerData betUser = await DatabaseModule.GetPlayerMatchmakingStats(memberToBetOn.Id.ToString());
 
             string discordId = ctx.Member.Id.ToString();
 
@@ -341,7 +346,7 @@ namespace SquidBot_Sharp.Commands
                 MatchmakingModule.Bets[discordId] = new MatchmakingModule.BetData()
                 {
                     Name = ctx.Member.DisplayName,
-                    UserToBetOn = userToBetOn,
+                    UserToBetOn = memberToBetOn.Id.ToString(),
                     BetAmount = amount
                 };
             }
@@ -350,7 +355,7 @@ namespace SquidBot_Sharp.Commands
                 MatchmakingModule.Bets.Add(discordId, new MatchmakingModule.BetData()
                 {
                     Name = ctx.Member.DisplayName,
-                    UserToBetOn = userToBetOn,
+                    UserToBetOn = memberToBetOn.Id.ToString(),
                     BetAmount = amount
                 });
             }
