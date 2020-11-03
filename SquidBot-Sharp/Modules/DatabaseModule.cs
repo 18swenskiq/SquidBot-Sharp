@@ -312,7 +312,7 @@ namespace SquidBot_Sharp.Modules
             gameData.Headshots = ExtractRowInfo<ushort>(dbresult[0], 4);
 
             var dbresult2 = await GetDataRowCollection($"SELECT winner, team1_score, team2_score FROM get5_stats_maps WHERE matchid='{matchId}';");
-            gameData.WonGame = ExtractRowInfo<string>(dbresult2[0], 0) == "none" ? true : gameData.TeamNumber == 1 && ExtractRowInfo<string>(dbresult2[0], 0) == "team1";
+            gameData.WonGame = ExtractRowInfo<string>(dbresult2[0], 0) == "none" ? true : ((gameData.TeamNumber == 1 && ExtractRowInfo<string>(dbresult2[0], 0) == "team1") || (gameData.TeamNumber == 2 && ExtractRowInfo<string>(dbresult2[0], 0) == "team2"));
             uint team1Score = ExtractRowInfo<ushort>(dbresult2[0], 1);
             uint team2Score = ExtractRowInfo<ushort>(dbresult2[0], 2);
             gameData.RoundsWon = gameData.TeamNumber == 1 ? team1Score : team2Score;

@@ -232,9 +232,9 @@ namespace SquidBot_Sharp.Modules
             const float WIN_REDUCE = 1.5f;
             const float ROUND_REDUCE_WIN = 0.5f;
             const float ROUND_REDUCE_LOSE = 0.48f;
-            const float KILL_REDUCE = 0.4f;
+            const float KILL_REDUCE = 0.6f;
             const float ASSIST_REDUCE = 0.2f;
-            const float DEATH_REDUCE = 0.45f;
+            const float DEATH_REDUCE = 0.65f;
             const float HEADSHOT_REDUCE = 0.2f;
 
             float currentPlayerElo = player.CurrentElo;
@@ -249,8 +249,10 @@ namespace SquidBot_Sharp.Modules
 
             float expected = 1 / (1 + MathF.Pow(10, ((enemyElo - player.CurrentElo) / ELO_SCALING_FACTOR)));
 
+            bool tie = roundsWon == roundsLost;
+            bool won = roundsWon > roundsLost || tie;
             float winElo = 0;
-            winElo += GAME_WIN_SCALING_FACTOR * ((roundsWon > roundsLost ? 1 : 0) - expected);
+            winElo += GAME_WIN_SCALING_FACTOR * ((won ? 1 : 0) - expected);
             winElo *= WIN_REDUCE;
 
             float roundEloWin = 0;
@@ -297,13 +299,25 @@ namespace SquidBot_Sharp.Modules
             }
             headshotElo *= HEADSHOT_REDUCE;
 
-            float finalResult = currentPlayerElo
-                + roundElo
+            float changeAmount = roundElo
                 + winElo
                 + killElo
                 + assistElo
                 + deathElo
                 + headshotElo;
+
+            if (won)
+            {
+                changeAmount = MathF.Max(1, changeAmount);
+            }
+            if (tie)
+            {
+                changeAmount = MathF.Max(0, changeAmount);
+            }
+
+            float finalResult = currentPlayerElo + changeAmount;
+
+
             return finalResult;
         }
     }
