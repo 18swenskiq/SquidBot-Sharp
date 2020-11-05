@@ -462,6 +462,7 @@ namespace SquidBot_Sharp.Commands
                 return;
             }
             var result = await DatabaseModule.GetAllMapNames();
+            result.Sort();
             string responsestring = "List of maps available:\n```\n";
             foreach(var item in result)
             {
