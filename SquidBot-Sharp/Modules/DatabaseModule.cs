@@ -426,6 +426,44 @@ namespace SquidBot_Sharp.Modules
             await DBExecuteNonQuery("INSERT INTO Servers(Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game) VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7, @val8, @val9, @val10);", payload);
         }
 
+        public static async Task AddSquidBetEvent(BetEvent betEvent)
+        {
+           var payload = new Dictionary<string, object>
+           {
+               {"@val1", betEvent.Title },
+               {"@val2", betEvent.Type },
+               {"@val3", betEvent.Active },
+               {"@val4", betEvent.EventName },
+               {"@val5", betEvent.Choice1 },
+               {"@val6", betEvent.Choice2 },
+               {"@val7", betEvent.Result }
+           };
+
+            await DBExecuteNonQuery("INSERT INTO SquidBet_Items(TitleName, Type, IsActiveToBet, Event, Choice1, Choice2, Result) VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7);", payload);
+        }
+
+        public static async Task<List<BetEvent>> GetSquidBetEvents()
+        {
+            var dbresult = await GetDataRowCollection("SELECT Id, TitleName, Type, IsActiveToBet, Event, Choice1, Choice2, Result FROM SquidBet_Items WHERE Result = 0");
+            List<BetEvent> betevents = new List<BetEvent>();
+            foreach(DataRow item in dbresult)
+            {
+                betevents.Add(new BetEvent
+                {
+                    Index = ExtractRowInfo<int>(dbresult[0], 0),
+                    Title = ExtractRowInfo<string>(dbresult[0], 1),
+                    Type = ExtractRowInfo<int>(dbresult[0], 2),
+                    Active = ExtractRowInfo<int>(dbresult[0], 3),
+                    EventName = ExtractRowInfo<string>(dbresult[0], 4),
+                    Choice1 = ExtractRowInfo<string>(dbresult[0], 5),
+                    Choice2 = ExtractRowInfo<string>(dbresult[0], 6),
+                    Result = ExtractRowInfo<int>(dbresult[0], 7)
+                });
+            }
+
+            return betevents;
+        }
+
         public static async Task<List<Server>> GetServerList()
         {
             var dbresult = await GetDataRowCollection($"SELECT Id, ServerId, Description, Address, RconPassword, FtpUser, FtpPassword, FtpPath, FtpType, Game FROM Servers;");
