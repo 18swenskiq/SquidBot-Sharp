@@ -473,13 +473,23 @@ namespace SquidBot_Sharp.Commands
                 await ctx.RespondAsync("Command is not usable within this guild");
                 return;
             }
-            var result = await DatabaseModule.GetAllMapNames();
-            result.Sort();
-            string responsestring = "List of maps available:\n```\n";
-            foreach(var item in result)
+            var result2 = await DatabaseModule.GetAllMapNames(false, 2);
+            var result3 = await DatabaseModule.GetAllMapNames(false, 3);
+            result2.Sort();
+            result3.Sort();
+            string responsestring = "**List of maps available**\n2v2:\n```\n";
+            foreach(var item in result2)
             {
                 responsestring += $"{item}, ";
             }
+            responsestring = responsestring.TrimEnd(new char[] { ' ', ',' });
+            responsestring += "\n```";
+            responsestring += "3v3:\n```\n";
+            foreach(var item in result3)
+            {
+                responsestring += $"{item}, ";
+            }
+            responsestring = responsestring.TrimEnd(new char[] { ' ', ',' });
             responsestring += "\n```";
             await ctx.RespondAsync(responsestring);
         }
