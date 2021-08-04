@@ -24,7 +24,8 @@ namespace SquidBot_Sharp.Modules
         public TeamJsonData team2;
         public CvarsJsonData cvars;
 
-        public MatchConfigData(string matchid, List<string> spectatorids, string mapstring, string team1name, string team2name, string team1player1steamid, string team1player2steamid, string team2player1steamid, string teams2player2steamid)
+        public MatchConfigData(string matchid, List<string> spectatorids, string mapstring, string team1name, string team2name,
+            string team1player1steamid, string team1player2steamid, string team2player1steamid, string team2player2steamid)
         {
             this.matchid = matchid;
             num_maps = 1;
@@ -61,7 +62,57 @@ namespace SquidBot_Sharp.Modules
                 players = new List<string>()
                 {
                     GeneralUtil.SteamIDFrom64ToLegacy(team2player1steamid),
-                    GeneralUtil.SteamIDFrom64ToLegacy(teams2player2steamid),
+                    GeneralUtil.SteamIDFrom64ToLegacy(team2player2steamid),
+                }
+            };
+            cvars = new CvarsJsonData()
+            {
+                hostname = "Match server #1"
+            };
+        }
+
+        public MatchConfigData(string matchid, List<string> spectatorids, string mapstring, string team1name, string team2name, 
+            string team1player1steamid, string team1player2steamid, string team1player3steamid, string team2player1steamid, 
+            string team2player2steamid, string team2player3steamid)
+        {
+            this.matchid = matchid;
+            num_maps = 1;
+            players_per_team = 3;
+            min_players_to_ready = 3;
+            min_spectators_to_ready = 0;
+            skip_veto = true;
+            veto_first = "team1";
+            side_type = "standard";
+            spectators = new PlayerJsonData()
+            {
+                players = spectatorids
+            };
+            maplist = new List<string>()
+            {
+                mapstring
+            };
+            favored_percentage_team1 = 65;
+            favored_percentage_text = "HLTV Bets";
+            this.team1 = new TeamJsonData()
+            {
+                name = team1name,
+                tag = team1name,
+                players = new List<string>()
+                {
+                    GeneralUtil.SteamIDFrom64ToLegacy(team1player1steamid),
+                    GeneralUtil.SteamIDFrom64ToLegacy(team1player2steamid),
+                    GeneralUtil.SteamIDFrom64ToLegacy(team1player3steamid),
+                }
+            };
+            this.team2 = new TeamJsonData()
+            {
+                name = team2name,
+                tag = team2name,
+                players = new List<string>()
+                {
+                    GeneralUtil.SteamIDFrom64ToLegacy(team2player1steamid),
+                    GeneralUtil.SteamIDFrom64ToLegacy(team2player2steamid),
+                    GeneralUtil.SteamIDFrom64ToLegacy(team2player3steamid),
                 }
             };
             cvars = new CvarsJsonData()
@@ -170,9 +221,11 @@ namespace SquidBot_Sharp.Modules
 
         public PlayerData Player1;
         public PlayerData Player2;
+        public PlayerData Player3;
 
         public PlayerGameData Player1MatchStats;
         public PlayerGameData Player2MatchStats;
+        public PlayerGameData Player3MatchStats;
 
         public PlayerGameData CombinedMatchStats { get { return new PlayerGameData(Player1MatchStats, Player2MatchStats); } }
         public float CombinedElo { get { return Player1.CurrentElo + Player2.CurrentElo; } }
@@ -197,9 +250,9 @@ namespace SquidBot_Sharp.Modules
     {
         private const int STARTING_ELO = 1000;
 
-        public static Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>> GetMatchup(PlayerData[] dataEntries)
+        public static List<PlayerData[]> GetMatchup(PlayerData[] dataEntries)
         {
-            if (dataEntries.Length != 4)
+            if (dataEntries.Length != 4 && dataEntries.Length != 6)
             {
                 Console.WriteLine("ERROR: Incorrect number of player entries sent");
                 return null;
@@ -207,10 +260,18 @@ namespace SquidBot_Sharp.Modules
 
             Array.Sort(dataEntries, (x, y) => { return x.CurrentElo.CompareTo(y.CurrentElo); });
 
-            return new Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>(
-                new Tuple<PlayerData, PlayerData>(dataEntries[0], dataEntries[3]),
-                new Tuple<PlayerData, PlayerData>(dataEntries[1], dataEntries[2])
-                );
+            if (dataEntries.Length == 4)
+            {
+                PlayerData[] team1 = { dataEntries[0], dataEntries[3] };
+                PlayerData[] team2 = { dataEntries[1], dataEntries[2] };
+                return new List<PlayerData[]> { team1, team2 };
+            }
+            else // Number is 6
+            {
+                PlayerData[] team1 = { dataEntries[0], dataEntries[4], dataEntries[5] };
+                PlayerData[] team2 = { dataEntries[1], dataEntries[2], dataEntries[3] };
+                return new List<PlayerData[]> { team1, team2 };
+            }           
         }
 
         public static float GetUpdatedPlayerEloWithMatchData(PlayerData player, PlayerTeamMatch friendlyTeam, PlayerTeamMatch enemyTeam)

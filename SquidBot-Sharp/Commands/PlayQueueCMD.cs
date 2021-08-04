@@ -81,13 +81,27 @@ namespace SquidBot_Sharp.Commands
         [Command("startqueue"), Description("Starting a play session for a CS:GO game")]
         [Aliases("sq", "startq")]
         [RequireGuild]
-        public async Task Play(CommandContext ctx, string extra = "")
+        public async Task Play(CommandContext ctx, string players = "")
         {
             if (ctx.Guild.Id != 572662006692315136)
             {
                 await ctx.RespondAsync("Command is not usable within this guild");
                 return;
             }
+
+            int playersPer;
+            int.TryParse(players, out playersPer);
+            if(playersPer != 2 && playersPer != 3)
+            {
+                await ctx.RespondAsync("You must declare the number of players you want per team (2 or 3). Use the command like `>startqueue 2`");
+                return;
+            }
+            else
+            {
+                MatchmakingModule.PlayersPerTeam = playersPer;
+            }
+
+
             if (!(await MatchmakingModule.DoesPlayerHaveSteamIDRegistered(ctx, ctx.Member)))
             {
                 await ctx.RespondAsync("You must have your Steam ID registered to play! Use `>register id` to add your Steam ID. (NEEDS to be a SteamID64. Find your Steam ID here: https://steamidfinder.com/)");
@@ -113,8 +127,6 @@ namespace SquidBot_Sharp.Commands
 
             MatchmakingModule.CurrentGameState = MatchmakingModule.MatchmakingState.Queueing;
             MatchmakingModule.PlayersInQueue.Clear();
-
-            MatchmakingModule.CaptainPick = extra.ToLower() == "pick";
 
             await MatchmakingModule.ChangeNameIfRelevant(ctx.Member);
 

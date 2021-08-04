@@ -47,8 +47,8 @@ namespace SquidBot_Sharp.Modules
         public static List<string> CurrentSpectatorNames = new List<string>();
         public static DiscordMessage PreviousMessage = null;
         public static MatchmakingState CurrentGameState = MatchmakingState.Idle;
-        public static bool CaptainPick = false;
         public static ulong CurrentMapID;
+        public static int PlayersPerTeam;
         public static bool BettingAllowed { get; private set; } = false;
         private static Dictionary<DiscordMember, PlayerData> discordPlayerToGamePlayer = new Dictionary<DiscordMember, PlayerData>();
         private static Dictionary<PlayerData, DiscordMember> gamePlayerToDiscordPlayer = new Dictionary<PlayerData, DiscordMember>();
@@ -191,9 +191,10 @@ namespace SquidBot_Sharp.Modules
 
         public static async Task UpdatePlayList(CommandContext ctx)
         {
+            int PlayersToStart = PlayersPerTeam * 2;
             BettingAllowed = true;
-            bool readyToStart = PlayersInQueue.Count >= 4;
-            string playersNeededText = "(" + (4 - PlayersInQueue.Count) + " Players Required)";
+            bool readyToStart = PlayersInQueue.Count >= PlayersToStart;
+            string playersNeededText = "(" + (PlayersToStart - PlayersInQueue.Count) + " Players Required)";
             if (readyToStart)
             {
                 playersNeededText = "(Match Ready)";
@@ -206,12 +207,16 @@ namespace SquidBot_Sharp.Modules
                 Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Type >queue to join" }
             };
 
-            PlayerData captain = null;
-            PlayerData enemyCaptain = null;
+            PlayerData Team1Captain = null;          
             PlayerData Team1Player1 = null;
             PlayerData Team1Player2 = null;
+            PlayerData Team1Player3 = null;
+
+            PlayerData Team2Captain = null;
             PlayerData Team2Player1 = null;
             PlayerData Team2Player2 = null;
+            PlayerData Team2Player3 = null;
+
             string team1Name = string.Empty;
             string team2Name = string.Empty;
 
@@ -224,20 +229,32 @@ namespace SquidBot_Sharp.Modules
                     players.Add(discordPlayerToGamePlayer[PlayersInQueue[i]]);
                 }
 
-                var teams = await GetPlayerMatchups(ctx, players);
-                Team1Player1 = teams.Item1.Item1;
-                Team1Player2 = teams.Item1.Item2;
-                Team2Player1 = teams.Item2.Item1;
-                Team2Player2 = teams.Item2.Item2;
+                var teams = Match.GetMatchup(players.ToArray());
+                Team1Player1 = teams[0][0];
+                Team1Player2 = teams[0][1];
+                Team2Player1 = teams[1][0];
+                Team2Player2 = teams[1][1];
+                Team1Captain = Team1Player1;
+                Team2Captain = Team2Player1;
 
-                captain = Team1Player1;
-                enemyCaptain = Team2Player1;
+                if (teams[0].Length > 2)
+                {
+                    Team1Player3 = teams[0][2];
+                    Team2Player3 = teams[1][2];
+                    team1Name = GeneralUtil.GetThirdString(Team1Player1.Name, 1) + GeneralUtil.GetThirdString(Team1Player2.Name, 2) + GeneralUtil.GetThirdString(Team1Player3.Name, 3);
+                    team2Name = GeneralUtil.GetThirdString(Team2Player1.Name, 1) + GeneralUtil.GetThirdString(Team2Player2.Name, 2) + GeneralUtil.GetThirdString(Team2Player3.Name, 3);
 
-                team1Name = GeneralUtil.GetHalfString(Team1Player1.Name, true) + GeneralUtil.GetHalfString(Team1Player2.Name, false);
-                team2Name = GeneralUtil.GetHalfString(Team2Player1.Name, true) + GeneralUtil.GetHalfString(Team2Player2.Name, false);
+                    embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo + ") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ") & " + Team1Player3.Name + " (" + Team1Player3.CurrentElo + ")");
+                    embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ") & " + Team2Player3.Name + " (" + Team2Player3.CurrentElo + ")");
+                }
+                else
+                {
+                    team1Name = GeneralUtil.GetHalfString(Team1Player1.Name, true) + GeneralUtil.GetHalfString(Team1Player2.Name, false);
+                    team2Name = GeneralUtil.GetHalfString(Team2Player1.Name, true) + GeneralUtil.GetHalfString(Team2Player2.Name, false);
 
-                embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo + ") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
-                embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ")");
+                    embed.AddField("Team " + team1Name, Team1Player1.Name + " (" + Team1Player1.CurrentElo + ") & " + Team1Player2.Name + " (" + Team1Player2.CurrentElo + ")");
+                    embed.AddField("Team " + team2Name, Team2Player1.Name + " (" + Team2Player1.CurrentElo + ") & " + Team2Player2.Name + " (" + Team2Player2.CurrentElo + ")");
+                }                                        
             }
             else
             {
@@ -278,7 +295,7 @@ namespace SquidBot_Sharp.Modules
 
                 do
                 {
-                    string mapSelectionResult = await DetermineMapSelectionType(ctx, captain, enemyCaptain, playerIds);
+                    string mapSelectionResult = await DetermineMapSelectionType(ctx, Team1Captain, Team2Captain, playerIds);
 
                     if (mapSelectionResult == ABORT_RESULT)
                     {
@@ -290,7 +307,7 @@ namespace SquidBot_Sharp.Modules
                         CurrentGameState = MatchmakingState.GameInProgress;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
                         CurrentMapID = ulong.Parse(mapid);
-                        await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name);
+                        await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name, PlayersToStart / 2);
                         break;
                     }
                 } while (true);
@@ -300,8 +317,10 @@ namespace SquidBot_Sharp.Modules
 
         #region Map Selection
 
-        private static async Task<string> DetermineMapSelectionType(CommandContext ctx, PlayerData captain, PlayerData enemyCaptain, List<string> playerIds)
+        private static async Task<string> DetermineMapSelectionType(CommandContext ctx, PlayerData team1Captain, PlayerData team2Captain, List<string> playerIds)
         {
+            int teamSize = playerIds.Count / 2;
+
             // Add new methods for map selection
             var mapselectmodeembed = new DiscordEmbedBuilder
             {
@@ -332,7 +351,15 @@ namespace SquidBot_Sharp.Modules
                 await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, type.GetEmoteRepresentation()));
             }
 
-            var allMapNames = await DatabaseModule.GetAllMapNames();
+            List<string> allMapNames;
+            if((teamSize * 2) == 4)
+            {
+                allMapNames = await DatabaseModule.GetAllMapNames(false, 2);
+            }
+            else // 6 players
+            {
+                allMapNames = await DatabaseModule.GetAllMapNames(false, 3);
+            }
 
             MapSelectionType? confirmedType = null;
 
@@ -371,9 +398,9 @@ namespace SquidBot_Sharp.Modules
                         sendMapOptions.Add(mapOptions[i]);
                     }
 
-                    return await StartRandomVetoMapSelection(ctx, sendMapOptions, captain, enemyCaptain, playerIds);
+                    return await StartRandomVetoMapSelection(ctx, sendMapOptions, team1Captain, team2Captain, playerIds);
                 case MapSelectionType.AllPick:
-                    return await StartAllPickMapSelection(ctx, allMapNames);
+                    return await StartAllPickMapSelection(ctx, allMapNames, teamSize);
                 case MapSelectionType.LeaderPick:
                     return await StartLeaderPickMapSelection(ctx);
                 case MapSelectionType.CompletelyRandomPick:
@@ -495,7 +522,7 @@ namespace SquidBot_Sharp.Modules
             }
         }
 
-        private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> enabledMapNames)
+        private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> enabledMapNames, int teamSize)
         {
             var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
             if (PreviousMessage != null)
@@ -514,7 +541,7 @@ namespace SquidBot_Sharp.Modules
                     return ABORT_RESULT;
                 }
 
-                if (playerSelections.Count == 4)
+                if (playerSelections.Count == (teamSize * 2))
                 {
                     break;
                 }
@@ -598,7 +625,7 @@ namespace SquidBot_Sharp.Modules
                 }
             }
 
-            var mapselectindex = rng.Next(0, 4);
+            var mapselectindex = rng.Next(0, (teamSize * 2));
             return playerSelections.ElementAt(mapselectindex).Value;
         }
 
@@ -634,7 +661,7 @@ namespace SquidBot_Sharp.Modules
 
         #endregion
 
-        private static async Task StartMap(CommandContext ctx, string mapID, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name)
+        private static async Task StartMap(CommandContext ctx, string mapID, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, int teamSize)
         {
 
             var waitingembed = new DiscordEmbedBuilder
@@ -664,7 +691,21 @@ namespace SquidBot_Sharp.Modules
                 CurrentSpectatorIds[i] = GeneralUtil.SteamIDFrom64ToLegacy(await DatabaseModule.GetPlayerSteamIDFromDiscordID(CurrentSpectatorIds[i]));
             }
 
-            MatchConfigData configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name, await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID));
+            MatchConfigData configData;
+
+            if (teamSize == 2)
+            {
+                configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name,
+                    await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID),
+                    await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID));
+            }
+            else // teamSize is 3
+            {
+                configData = new MatchConfigData($"{lastmatchid + 1}", CurrentSpectatorIds, @$"workshop\{mapID}\{bspname}", team1Name, team2Name,
+                    await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[0].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[1].ID),
+                    await DatabaseModule.GetPlayerSteamIDFromDiscordID(team1[2].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[0].ID), 
+                    await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[1].ID), await DatabaseModule.GetPlayerSteamIDFromDiscordID(team2[2].ID));
+            }
 
             string json = JsonConvert.SerializeObject(configData, Formatting.Indented);
 
@@ -728,19 +769,29 @@ namespace SquidBot_Sharp.Modules
                 ImageUrl = iteminfo[0].PreviewURL,
                 Footer = new DiscordEmbedBuilder.EmbedFooter() { Text = "Map: " + mapName }
             };
-            matchembed.AddField($"Team {team1Name}", $"{team1[0].Name}\n{team1[1].Name}", true);
-            matchembed.AddField($"Team {team2Name}", $"{team2[0].Name}\n{team2[1].Name}", true);
+
+            if(teamSize == 2)
+            {
+                matchembed.AddField($"Team {team1Name}", $"{team1[0].Name}\n{team1[1].Name}", true);
+                matchembed.AddField($"Team {team2Name}", $"{team2[0].Name}\n{team2[1].Name}", true);
+            }
+            else // Team size is 3
+            {
+                matchembed.AddField($"Team {team1Name}", $"{team1[0].Name}\n{team1[1].Name}\n{team1[2].Name}", true);
+                matchembed.AddField($"Team {team2Name}", $"{team2[0].Name}\n{team2[1].Name}\n{team2[2].Name}", true);
+            }
+            
             matchembed.AddField(iteminfo[0].Title, "---------------------------------", false);
 
             //matchembed.WithFooter(iteminfo[0].Title);
 
             await embedmessage.ModifyAsync(string.Empty, (DiscordEmbed)matchembed);
 
-            await MatchPostGame(ctx, lastmatchid + 1, mapName, team1, team2, team1Name, team2Name);
+            await MatchPostGame(ctx, lastmatchid + 1, mapName, team1, team2, team1Name, team2Name, false, teamSize);
         }
 
 
-        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool recalculate = false)
+        public static async Task MatchPostGame(CommandContext ctx, int matchId, string mapName, List<PlayerData> team1, List<PlayerData> team2, string team1Name, string team2Name, bool recalculate = false, int teamSize = 2)
         {
             int updatedmatchid = matchId;
             int currentSeconds = 0;
@@ -795,7 +846,7 @@ namespace SquidBot_Sharp.Modules
 
             await Task.Delay(5000);
 
-            var statsembed = await UpdateStatsPostGame(ctx, team1, team2, updatedmatchid, team1Name, team2Name);
+            var statsembed = await UpdateStatsPostGame(ctx, team1, team2, updatedmatchid, team1Name, team2Name, teamSize);
 
             //Award SquidCoin for playing or spectating.
             await AwardSquidCoin(team1[0].ID, SQUID_COIN_REWARD_PLAY);
@@ -803,11 +854,26 @@ namespace SquidBot_Sharp.Modules
             await AwardSquidCoin(team2[0].ID, SQUID_COIN_REWARD_PLAY);
             await AwardSquidCoin(team2[1].ID, SQUID_COIN_REWARD_PLAY);
 
+            if(teamSize == 3)
+            {
+                await AwardSquidCoin(team1[2].ID, SQUID_COIN_REWARD_PLAY);
+                await AwardSquidCoin(team2[2].ID, SQUID_COIN_REWARD_PLAY);
+            }
+
+
             statsembed.Description = "SquidCoin Awards\n\n";
             statsembed.Description += team1[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[0].ID) + ")\n";
             statsembed.Description += team1[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[1].ID) + ")\n";
+            if(teamSize == 3)
+            {
+                statsembed.Description += team1[2].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team1[2].ID) + ")\n";
+            }
             statsembed.Description += team2[0].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[0].ID) + ")\n";
             statsembed.Description += team2[1].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[1].ID) + ")\n";
+            if (teamSize == 3)
+            {
+                statsembed.Description += team2[2].Name + ": +" + SQUID_COIN_REWARD_PLAY + DiscordEmoji.FromName(ctx.Client, SQUIDCOIN) + "(" + await DatabaseModule.GetPlayerSquidCoin(team2[2].ID) + ")\n";
+            }
 
             //Add squidcoin for spectators (Should we verify they joined somehow?)
             for (int i = 0; i < CurrentSpectatorDiscordIds.Count; i++)
@@ -920,98 +986,35 @@ namespace SquidBot_Sharp.Modules
             await Reset();
             await ctx.RespondAsync("All matches recalculated.");
         }
-
-        private static async Task<Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>> GetPlayerMatchups(CommandContext ctx, List<PlayerData> players)
-        {
-            if (CaptainPick)
-            {
-                PreviousMessage = null;
-                PlayerData captain = players[0];
-                players.RemoveAt(0);
-
-                PlayerData otherCaptain = await SelectPlayer(ctx, captain, players, "Select the enemy captain");
-                players.Remove(otherCaptain);
-                PlayerData otherPlayer = await SelectPlayer(ctx, otherCaptain, players, "Select your teammate");
-                players.Remove(otherPlayer);
-
-                return new Tuple<Tuple<PlayerData, PlayerData>, Tuple<PlayerData, PlayerData>>(
-                new Tuple<PlayerData, PlayerData>(captain, players[0]),
-                new Tuple<PlayerData, PlayerData>(otherCaptain, otherPlayer)
-                );
-            }
-            else
-            {
-                return Match.GetMatchup(players.ToArray());
-            }
-        }
-
-        private static async Task<PlayerData> SelectPlayer(CommandContext ctx, PlayerData selector, List<PlayerData> otherPlayers, string instructionText)
-        {
-            var embed = new DiscordEmbedBuilder
-            {
-                Color = new DiscordColor(0x3277a8),
-                Title = "Team Selector",
-                Timestamp = DateTime.UtcNow
-            };
-            for (int i = 0; i < otherPlayers.Count; i++)
-            {
-                embed.AddField(otherPlayers[i].Name, ":" + numbersWritten[i + 1] + ":");
-            }
-            embed.AddField("Current Captain: " + selector.Name, instructionText);
-
-
-            if (PreviousMessage != null)
-            {
-                await PreviousMessage.DeleteAsync();
-            }
-
-            Task<DiscordMessage> taskMsg = ctx.RespondAsync(embed: embed);
-            PreviousMessage = taskMsg.Result;
-
-            await taskMsg;
-
-            for (int i = 0; i < otherPlayers.Count; i++)
-            {
-                await PreviousMessage.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
-            }
-
-            int chosen = -1;
-            bool waiting = true;
-            while (waiting)
-            {
-                for (int i = 0; i < otherPlayers.Count; i++)
-                {
-                    var reacteds = await PreviousMessage.GetReactionsAsync(DiscordEmoji.FromName(ctx.Client, ":" + numbersWritten[i + 1] + ":"));
-                    if (reacteds.Count > 1)
-                    {
-                        for (int j = 0; j < reacteds.Count; j++)
-                        {
-                            if (reacteds[j].Id.ToString() == selector.ID)
-                            {
-                                waiting = false;
-                                chosen = i;
-                            }
-                        }
-                    }
-                }
-                await Task.Delay(1000);
-            }
-
-            return otherPlayers[chosen];
-        }
-
-        public static async Task<DiscordEmbedBuilder> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name)
+        public static async Task<DiscordEmbedBuilder> UpdateStatsPostGame(CommandContext ctx, List<PlayerData> team1, List<PlayerData> team2, int matchId, string team1Name, string team2Name, int teamSize)
         {
             //Update stats and shit
             PlayerData t1p1Final = team1[0];
             PlayerData t1p2Final = team1[1];
+            PlayerData t1p3Final = null;
             PlayerData t2p1Final = team2[0];
             PlayerData t2p2Final = team2[1];
+            PlayerData t2p3Final = null;
+
+            if(teamSize == 3)
+            {
+                t1p3Final = team1[2];
+                t2p3Final = team2[2];
+            }
 
             PlayerGameData team1player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p1Final.ID, matchId, team1Name);
             PlayerGameData team1player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p2Final.ID, matchId, team1Name);
+            PlayerGameData team1Player3Data = null;
             PlayerGameData team2player1Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p1Final.ID, matchId, team2Name);
             PlayerGameData team2player2Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p2Final.ID, matchId, team2Name);
+            PlayerGameData team2Player3Data = null;
+
+            if(teamSize == 3)
+            {
+                team1Player3Data = await DatabaseModule.GetPlayerStatsFromMatch(t1p3Final.ID, matchId, team1Name);
+                team2Player3Data = await DatabaseModule.GetPlayerStatsFromMatch(t2p3Final.ID, matchId, team2Name);
+            }
+
 
             if (team1player1Data.TeamName != team1Name)
             {
@@ -1027,6 +1030,8 @@ namespace SquidBot_Sharp.Modules
                 Player1MatchStats = team1player1Data,
                 Player2 = t1p2Final,
                 Player2MatchStats = team1player2Data,
+                Player3 = t1p3Final,
+                Player3MatchStats = team1Player3Data,
                 RoundsWon = team1player1Data.RoundsWon
             };
 
@@ -1037,6 +1042,8 @@ namespace SquidBot_Sharp.Modules
                 Player1MatchStats = team2player1Data,
                 Player2 = t2p2Final,
                 Player2MatchStats = team2player2Data,
+                Player3 = t2p3Final,
+                Player3MatchStats = team2Player3Data,
                 RoundsWon = team2player1Data.RoundsWon
             };
 
@@ -1066,35 +1073,25 @@ namespace SquidBot_Sharp.Modules
                 currentWinner = team2Data;
             }
 
-            float t1p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p1Final, team1Data, team2Data);
-            float t1p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t1p2Final, team1Data, team2Data);
-            float t2p1Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p1Final, team2Data, team1Data);
-            float t2p2Elo = Match.GetUpdatedPlayerEloWithMatchData(t2p2Final, team2Data, team1Data);
+            int t1p1EloDiff;
+            int t1p2EloDiff;
+            int t1p3EloDiff = -1;
+            int t2p1EloDiff;
+            int t2p2EloDiff;
+            int t2p3EloDiff = -1;
 
-            int t1p1EloDiff = (int)(t1p1Elo - t1p1Final.CurrentElo);
-            int t1p2EloDiff = (int)(t1p2Elo - t1p2Final.CurrentElo);
-            int t2p1EloDiff = (int)(t2p1Elo - t2p1Final.CurrentElo);
-            int t2p2EloDiff = (int)(t2p2Elo - t2p2Final.CurrentElo);
+            // TODO: finish this for players, and add optional player 3
 
-            t1p1Final.CurrentElo = t1p1Elo;
-            t1p2Final.CurrentElo = t1p2Elo;
-            t2p1Final.CurrentElo = t2p1Elo;
-            t2p2Final.CurrentElo = t2p2Elo;
-
-            t1p1Final.UpdateWithGameData(team1player1Data);
-            t1p2Final.UpdateWithGameData(team1player2Data);
-            t2p1Final.UpdateWithGameData(team2player1Data);
-            t2p2Final.UpdateWithGameData(team2player2Data);
-
-            await DatabaseModule.DeletePlayerStats(t1p1Final.ID);
-            await DatabaseModule.DeletePlayerStats(t1p2Final.ID);
-            await DatabaseModule.DeletePlayerStats(t2p1Final.ID);
-            await DatabaseModule.DeletePlayerStats(t2p2Final.ID);
-
-            await DatabaseModule.AddPlayerMatchmakingStat(t2p1Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t1p2Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t1p1Final);
-            await DatabaseModule.AddPlayerMatchmakingStat(t2p2Final);
+            (t1p1Final, t1p1EloDiff) = await UpdatePlayerStatsAndElo(t1p1Final, team1player1Data, team1Data, team2Data);
+            (t1p2Final, t1p2EloDiff) = await UpdatePlayerStatsAndElo(t1p2Final, team1player2Data, team1Data, team2Data);
+            (t2p1Final, t2p1EloDiff) = await UpdatePlayerStatsAndElo(t2p1Final, team2player1Data, team2Data, team1Data);
+            (t2p2Final, t2p2EloDiff) = await UpdatePlayerStatsAndElo(t2p2Final, team2player2Data, team2Data, team1Data);
+            
+            if(teamSize == 3)
+            {
+                (t1p3Final, t1p3EloDiff) = await UpdatePlayerStatsAndElo(t1p3Final, team1Player3Data, team1Data, team2Data);
+                (t2p3Final, t2p3EloDiff) = await UpdatePlayerStatsAndElo(t2p3Final, team2Player3Data, team2Data, team1Data);
+            }
 
             string winner = team1player1Data.WonGame && team2player1Data.WonGame ? "TIE" : (team1player1Data.WonGame ? team1Name : team2Name);
             var embed = new DiscordEmbedBuilder
@@ -1112,6 +1109,12 @@ namespace SquidBot_Sharp.Modules
 
             diffVal = t1p2EloDiff > 0 ? "+" : "";
             embed.AddField(t1p2Final.Name + " Elo: " + (int)(t1p2Final.CurrentElo) + " (" + diffVal + t1p2EloDiff + ")", "Kills: " + team1player2Data.KillCount + " | Assists: " + team1player2Data.AssistCount + " | Deaths: " + team1player2Data.DeathCount);
+            
+            if(teamSize == 3)
+            {
+                diffVal = t1p3EloDiff > 0 ? "+" : "";
+                embed.AddField(t1p3Final.Name + " Elo: " + (int)(t1p3Final.CurrentElo) + " (" + diffVal + t1p3EloDiff + ")", "Kills: " + team1Player3Data.KillCount + " | Assists: " + team1Player3Data.AssistCount + " | Deaths: " + team1Player3Data.DeathCount);
+            }
 
             diffVal = t2p1EloDiff > 0 ? "+" : "";
             embed.AddField(t2p1Final.Name + " Elo: " + (int)(t2p1Final.CurrentElo) + " (" + diffVal + t2p1EloDiff + ")", "Kills: " + team2player1Data.KillCount + " | Assists: " + team2player1Data.AssistCount + " | Deaths: " + team2player1Data.DeathCount);
@@ -1119,9 +1122,26 @@ namespace SquidBot_Sharp.Modules
             diffVal = t2p2EloDiff > 0 ? "+" : "";
             embed.AddField(t2p2Final.Name + " Elo: " + (int)(t2p2Final.CurrentElo) + " (" + diffVal + t2p2EloDiff + ")", "Kills: " + team2player2Data.KillCount + " | Assists: " + team2player2Data.AssistCount + " | Deaths: " + team2player2Data.DeathCount);
 
+            if (teamSize == 3)
+            {
+                diffVal = t2p3EloDiff > 0 ? "+" : "";
+                embed.AddField(t2p3Final.Name + " Elo: " + (int)(t2p3Final.CurrentElo) + " (" + diffVal + t2p3EloDiff + ")", "Kills: " + team2Player3Data.KillCount + " | Assists: " + team2Player3Data.AssistCount + " | Deaths: " + team2Player3Data.DeathCount);
+            }
+
             return embed;
         }
 
+        public static async Task<(PlayerData, int)> UpdatePlayerStatsAndElo(PlayerData finalStats, PlayerGameData pGameData, PlayerTeamMatch playerTeam, PlayerTeamMatch enemyTeam)
+        {
+
+            float playerElo = Match.GetUpdatedPlayerEloWithMatchData(finalStats, playerTeam, enemyTeam);
+            int playerEloDiff = (int)(playerElo - finalStats.CurrentElo);
+            finalStats.CurrentElo = playerElo;
+            finalStats.UpdateWithGameData(pGameData);
+            await DatabaseModule.DeletePlayerStats(finalStats.ID);
+            await DatabaseModule.AddPlayerMatchmakingStat(finalStats);
+            return (finalStats, playerEloDiff);
+        }
         public static async Task<bool> ChangeNameIfRelevant(DiscordMember member)
         {
             PlayerData player = await DatabaseModule.GetPlayerMatchmakingStats(member.Id.ToString());

@@ -117,5 +117,22 @@ namespace SquidBot_Sharp.Utilities
                 return inputstring.Substring(isL, inputstring.Length - isL);
             }
         }
+
+        public static string GetThirdString(string inputstring, int thirdsection)
+        {
+            int isL = (int)MathF.Floor((float)inputstring.Length / 3f);
+            if (thirdsection == 1)
+            {
+                return inputstring.Substring(0, isL);
+            }
+            else if(thirdsection == 2)
+            {
+                return inputstring.Substring(isL, isL * 2);
+            }
+            else
+            {
+                return inputstring.Substring(isL, inputstring.Length - isL);
+            }
+        }
     }
 }
