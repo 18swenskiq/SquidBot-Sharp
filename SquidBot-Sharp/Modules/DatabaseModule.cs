@@ -139,15 +139,25 @@ namespace SquidBot_Sharp.Modules
         public static async Task<List<string>> GetAllMapNames(bool getdisabled = false, int teamSize = 2)
         {
             DataRowCollection dbresult;
-            string queryString = "SELECT MapName FROM MapData";
+            string queryString = "SELECT MapName FROM MapData ";
 
-            if(!getdisabled) queryString += " WHERE Enabled=1";
-            else queryString += " WHERE Enabled=0";
+            if (!getdisabled && teamSize == 2)
+            {
+                queryString += "WHERE Enabled=1 AND WingmanSupport=1;";
+            }
+            else if(getdisabled && teamSize == 2)
+            {
+                queryString += "WHERE WingmanSupport=1;";
+            }
+            else if(!getdisabled && teamSize == 3)
+            {
+                queryString += "WHERE Enabled=1 AND 3v3Support=1;";
+            }
+            else if(getdisabled && teamSize == 3)
+            {
+                queryString += "WHERE 3v3Support=1;";
+            }
 
-            if (teamSize == 2) queryString += " AND WingmanSupport=1";
-            else queryString += " AND 3v3Support=1";
-
-            queryString += ";";
             dbresult = await GetDataRowCollection(queryString);
             List<string> results = new List<string>();
             foreach(DataRow item in dbresult)

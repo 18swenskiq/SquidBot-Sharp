@@ -307,7 +307,14 @@ namespace SquidBot_Sharp.Modules
                         CurrentGameState = MatchmakingState.GameInProgress;
                         var mapid = await DatabaseModule.GetMapIDFromName(mapSelectionResult);
                         CurrentMapID = ulong.Parse(mapid);
-                        await StartMap(ctx, mapid, mapSelectionResult, team1: new List<PlayerData>() { Team1Player1, Team1Player2 }, team2: new List<PlayerData>() { Team2Player1, Team2Player2 }, team1Name, team2Name, PlayersToStart / 2);
+                        var team1 = new List<PlayerData>() { Team1Player1, Team1Player2 };
+                        var team2 = new List<PlayerData>() { Team2Player1, Team2Player2 };
+                        if(PlayersToStart == 6)
+                        {
+                            team1.Add(Team1Player3);
+                            team2.Add(Team2Player3);
+                        }
+                        await StartMap(ctx, mapid, mapSelectionResult, team1: team1, team2: team2, team1Name, team2Name, PlayersToStart / 2);
                         break;
                     }
                 } while (true);
@@ -402,7 +409,7 @@ namespace SquidBot_Sharp.Modules
                 case MapSelectionType.AllPick:
                     return await StartAllPickMapSelection(ctx, allMapNames, teamSize);
                 case MapSelectionType.LeaderPick:
-                    return await StartLeaderPickMapSelection(ctx);
+                    return await StartLeaderPickMapSelection(ctx, teamSize);
                 case MapSelectionType.CompletelyRandomPick:
                     return StartRandomMapSelection(ctx, allMapNames);
             }
@@ -524,7 +531,7 @@ namespace SquidBot_Sharp.Modules
 
         private static async Task<string> StartAllPickMapSelection(CommandContext ctx, List<string> enabledMapNames, int teamSize)
         {
-            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
+            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true, teamSize);
             if (PreviousMessage != null)
             {
                 await PreviousMessage.DeleteAsync();
@@ -629,9 +636,9 @@ namespace SquidBot_Sharp.Modules
             return playerSelections.ElementAt(mapselectindex).Value;
         }
 
-        private static async Task<string> StartLeaderPickMapSelection(CommandContext ctx)
+        private static async Task<string> StartLeaderPickMapSelection(CommandContext ctx, int teamSize)
         {
-            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true);
+            var allMapNamesIncludingDisabled = await DatabaseModule.GetAllMapNames(true, teamSize);
             await ctx.RespondAsync($"{PlayersInQueue[0].Nickname}, please type the name of a map to play!");
             var interactivity = ctx.Client.GetInteractivity();
             while (true)
