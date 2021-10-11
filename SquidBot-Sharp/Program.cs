@@ -35,18 +35,28 @@ namespace SquidBot_Sharp
 
 
         public readonly static int TIMER_INTERVAL = 60000;
-        public static readonly int BACKUP_TIME_HOUR = 3; 
+        public static readonly int BACKUP_TIME_HOUR = 3;
+        public static string SETTINGS_PATH;
 
         public static void Main(string[] args)
         {
             var prog = new Program();
+            if (args.Length > 0)
+            {
+                SETTINGS_PATH = args[0];
+            }
+            else
+            {
+                SETTINGS_PATH = "settings.json";
+            }
             prog.RunBotAsync().GetAwaiter().GetResult();
         }
 
         public async Task RunBotAsync()
         {
             _impersonate = new ImpersonateModule();
-            using (StreamReader r = new StreamReader("settings.json"))
+            
+            using (StreamReader r = new StreamReader(SETTINGS_PATH))
             {
                 string json = await r.ReadToEndAsync();
                 var sfd = JsonConvert.DeserializeObject<SettingsFileDeserialize>(json);
@@ -66,7 +76,8 @@ namespace SquidBot_Sharp
                 TokenType = TokenType.Bot,
 
                 AutoReconnect = true,
-                MinimumLogLevel = LogLevel.Debug
+                MinimumLogLevel = LogLevel.Debug,
+                Intents = DiscordIntents.All
             };
 
 

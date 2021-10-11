@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SquidBot-Sharp": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}
